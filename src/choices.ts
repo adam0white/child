@@ -83,8 +83,22 @@ export function preparationChoices(game: Game): {
       : null;
   choices.push({
     title: "Work in the field",
-    detail: `${fieldPurposes[game.age]} You add to the food stores and mend the well rope. Elif stays home${teacher ? ` after watching ${teacher}` : ""}; no adult shows her a new way today.`,
+    detail: `${fieldPurposes[game.age]} You add food to the stores and mend the well rope. The stores may still be low afterward. Elif stays home${teacher ? ` after watching ${teacher}` : ""}; no adult shows her a new way today.`,
     input: { type: "work" },
   });
   return choices;
+}
+
+export function foodStatus(food: number): string {
+  return food === 0
+    ? "The food stores are empty."
+    : food <= 3
+      ? "The food stores are nearly empty."
+      : food <= 7
+        ? "The food stores are running low."
+        : "There is food for the household.";
+}
+
+export function preparationProgress(preparations: number): string {
+  return `Afternoon ${preparations} of 3 is finished.`;
 }

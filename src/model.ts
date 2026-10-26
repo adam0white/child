@@ -43,7 +43,7 @@ export interface Outcome {
   memory: string;
 }
 export interface Game {
-  edition: 2;
+  edition: 3;
   seed: number;
   slice: boolean;
   chapter: number;
@@ -51,6 +51,7 @@ export interface Game {
   phase: Phase;
   preparations: number;
   food: number;
+  waterReserve: number;
   repairs: number;
   routeKnown: boolean;
   community: Community;
@@ -153,7 +154,7 @@ export function createGame(seed = 21, slice = false): Game {
     }),
   );
   const g: Game = {
-    edition: 2,
+    edition: 3,
     seed,
     slice,
     chapter: 0,
@@ -161,6 +162,7 @@ export function createGame(seed = 21, slice = false): Game {
     phase: "prepare",
     preparations: 0,
     food: 9,
+    waterReserve: 2,
     repairs: 7,
     routeKnown: false,
     community: createCommunity([child, ...people]),
@@ -274,7 +276,14 @@ export function step(g: Game, input: Input): void {
   ) {
     if (input.type === "teach") {
       teach(g, input.practice, `scene-${g.chapter}-${g.preparations}`);
-      const base = lessonLines[input.practice][g.preparations % 3] ?? "";
+      const base = (
+        lessonLines[input.practice][g.preparations % 3] ?? ""
+      ).replace(
+        "Elif stands beside your elbow.",
+        g.age >= 14
+          ? "Elif helps you hold the place for the waiting households."
+          : "Elif stands beside you.",
+      );
       g.rememberedLessons[input.practice] =
         lessonMemories[input.practice][g.preparations % 3] ?? "";
       const growing: Record<number, string[]> = {
@@ -316,7 +325,9 @@ export function step(g: Game, input: Input): void {
       g.food += 2;
       g.repairs += 1;
       g.lastLesson =
-        "You work in the field. Elif plays with an empty jar. No adult shows her a new way today.";
+        g.age >= 14
+          ? "You work in the field. Elif practises alone by the well. No adult shows her a new way today."
+          : "You work in the field. Elif plays with an empty jar. No adult shows her a new way today.";
     }
     g.food = Math.max(0, Math.min(12, g.food));
     g.repairs = Math.max(0, Math.min(10, g.repairs));
@@ -415,7 +426,7 @@ function resolve(g: Game) {
   let success = false;
   let line =
     "I could not decide whether to stay or go. I came home with an empty jar.";
-  let cost = "The household uses its stored water tonight.";
+  let cost = "The household comes home short tonight.";
   let movement = "Elif stops between the path and the well.";
   if (g.age === 6 && action === "look") {
     success = true;
@@ -439,7 +450,7 @@ function resolve(g: Game) {
       : "I waited where Danyal waits. Nobody came before dusk.";
     cost = success
       ? "Danyal leaves the well repairs until tomorrow."
-      : "The household uses its stored water tonight.";
+      : "The household comes home short tonight.";
     movement =
       "Elif sits beside the well, then returns with " +
       (success ? "a full jar." : "an almost empty jar.");
@@ -474,7 +485,7 @@ function resolve(g: Game) {
           !g.conditions.flood,
           "I went to see whether the neighbour had another jar.",
           g.conditions.flood
-            ? "The path was wet. The household uses its stored water."
+            ? "The path was wet. The household comes home short."
             : "The walk costs an afternoon of field work.",
           "Elif follows the path to the neighbour, then turns toward home.",
         ],
@@ -509,7 +520,7 @@ function resolve(g: Game) {
             : "I waited for Danyal. Our turn passed while he was away.",
           g.conditions.available
             ? "Danyal delays his repair work to settle the queue."
-            : "The household spends its stored water.",
+            : "The household comes home short.",
           "Elif waits beside the well while the queue moves.",
         ],
       },
@@ -525,7 +536,7 @@ function resolve(g: Game) {
           "I checked the store beyond the upper path.",
           g.conditions.seep
             ? "The stored water supplies everyone. Moving it delays well repairs."
-            : "The upper store is empty. The household gives away its stored water.",
+            : "The upper store is empty. The sharing leaves our household short.",
           "Elif takes the upper path to the water store.",
         ],
         refuse: [
@@ -589,12 +600,34 @@ function resolve(g: Game) {
       "I could not decide whether to stay or go.";
     cost =
       row?.[2] ??
-      "The household spends its stored water to cover the shortfall.";
+      (g.age === 18
+        ? "The last households go without water before night."
+        : "The household comes home short.");
     movement = row?.[3] ?? "Elif stops between the path and the well.";
     if (success) {
       if (action === "count" || action === "refuse") g.food -= 2;
       else g.repairs -= 2;
     }
+  }
+  if (g.age < 18 && !success) {
+    if (g.waterReserve > 0) {
+      g.waterReserve--;
+      cost +=
+        " One emergency household share of stored water covers today's missing water.";
+    } else {
+      cost +=
+        " The emergency store is empty. There is no stored water left to cover today's shortfall.";
+    }
+  }
+  if (g.age === 18 && g.waterReserve === 0) {
+    success = false;
+    cost =
+      "The emergency store is empty. The last households need stored water while the carriers return. They have no water before night. " +
+      reserveHistory(g);
+  } else if (g.age === 18 && success) {
+    g.waterReserve--;
+    cost +=
+      " One emergency household share supplies the last households while the carriers return.";
   }
   if (!success) g.food -= 3;
   if (action === "try") {
@@ -606,45 +639,31 @@ function resolve(g: Game) {
         : teachers[action as Practice];
     line = `I tried ${source}’s way. It did not fit today. ${success ? "I found a way to finish." : "I came home short."}`;
   }
+  if (g.age === 18 && g.waterReserve === 0 && !success)
+    line += " We could not finish the last deliveries before night.";
+  if (g.age === 18 && !success) {
+    if (action === "count")
+      line =
+        "I tried Maryam’s way and counted the waiting houses. There was not enough water for the last deliveries.";
+    const incomplete: Record<string, string> = {
+      count: "Elif counts the waiting households",
+      look: "Elif checks the upper spring",
+      wait: "Elif waits by the well",
+      refuse: "Elif holds the queue",
+      freeze: "Elif stops between the path and the well",
+      try: "Elif stands beside the unfilled jars",
+    };
+    movement = `${incomplete[action] ?? "Elif returns to the well"}; the last households still wait.`;
+  }
   g.food = Math.max(0, Math.min(12, g.food));
   g.repairs = Math.max(0, Math.min(10, g.repairs));
   if (g.food === 0)
     cost += " Our food stores are empty. There is no supper tonight.";
   if (g.repairs === 0)
     cost += " The well rope is frayed. It needs repair before the next season.";
-  const acts: Record<string, string[]> = {
-    count: [
-      "I set our evening jar aside.",
-      "I counted the small jars before carrying them.",
-      "I set our jar in its place in the queue.",
-      "I measured a share for every family.",
-      "I counted the houses before dividing the water.",
-    ],
-    look: [
-      "I went to see the neighbour's jars.",
-      "I checked the stones before I carried water.",
-      "I checked the side entrance.",
-      "I went to see what was left in the upper store.",
-      "I went to check the spring before carrying jars.",
-    ],
-    wait: [
-      "I waited beside our jar.",
-      "I sat by the well where I remembered him sitting.",
-      "I looked for him beside the queue.",
-      "I waited while the families needed me to begin.",
-      "I stayed beside the well to look for him.",
-    ],
-    refuse: [
-      "I covered our evening jar with my hand.",
-      "I kept clear of the path.",
-      "I held our place in the queue.",
-      "I kept the jars until the families arrived.",
-      "I held my arm across the queue.",
-    ],
-  };
   const remembered = g.rememberedLessons[action as Practice];
   const memory = remembered
-    ? `${remembered} ${acts[action]?.[g.slice ? 1 : g.chapter] ?? "I tried that way."} ${success ? "That was enough today." : "That was not enough today."}`
+    ? `${remembered} ${line} ${success ? "That was enough today." : "That was not enough today."}`
     : action === "freeze"
       ? "I remembered Danyal waiting and another adult going ahead. I could not choose between the two. The families came home short."
       : "I had watched nobody work through this task. I did not know where to begin. We came home short.";
@@ -706,6 +725,18 @@ export const chapterGoals: Record<number, string> = {
   14: "Divide the winter store so nobody goes without.",
   18: "Bring water to every waiting household by night.",
 };
+function reserveHistory(g: Game): string {
+  return g.history
+    .filter((outcome) => !outcome.success)
+    .map((outcome) => {
+      const source = teachers[outcome.action as Practice];
+      return `At ${outcome.age}, ${source ? `Elif tried ${source === "Zehra" ? "Mother" : source}’s way` : "Elif had no workable plan"} and came home short.`;
+    })
+    .join(" ");
+}
+export function endingReason(g: Game): string {
+  return g.outcome ? `${g.outcome.memory} ${g.outcome.cost}` : "";
+}
 export function conditionsText(g: Game): string {
   const variant = g.conditions.variant;
   const physical =
@@ -726,11 +757,11 @@ export function conditionsText(g: Game): string {
             : g.conditions.seep
               ? "Water still flows from the upper spring. The well alone cannot fill every household’s jar."
               : "The upper spring is dry. The well can fill smaller shares if nobody takes a second jar.";
-  return `${physical} ${g.age === 18 && g.conditions.seep && g.conditions.variant === 1 ? "The household water store is empty. Counting shares at the well alone leaves the last households without water; she needs to inspect the spring or work with Danyal." : ""} ${g.conditions.available ? "Danyal is on duty today." : "Danyal is away today."} ${g.conditions.conflict && g.conditions.available && g.age !== 3 && g.age !== 14 ? "A neighbour asks Elif to wait for Danyal. The waiting households need her to start carrying water." : ""} ${g.age === 18 ? (g.conditions.carriersFed ? "Before these lessons, food was set aside for the carriers. They can make extra trips if there is stored water to share." : "Before these lessons, the carriers missed meals. If the upper spring runs, counting alone leaves too many trips; she needs to inspect it or work with Danyal.") : ""}`;
+  return `${physical} The emergency store has ${g.waterReserve} household ${g.waterReserve === 1 ? "share" : "shares"} left. ${g.age === 18 ? "The last households need one stored household share while the carriers return. Without it, the last deliveries cannot arrive before night." : "A shortfall uses one emergency household share; ordinary daily supplies do not refill this store."} ${g.age === 18 && g.conditions.seep && g.conditions.variant === 1 ? "The household water store is empty. Counting shares at the well alone leaves the last households without water; she needs to inspect the spring or work with Danyal." : ""} ${g.conditions.available ? "Danyal is on duty today." : "Danyal is away today."} ${g.conditions.conflict && g.conditions.available && g.age !== 3 && g.age !== 14 ? (g.age === 18 ? "One neighbour asks Elif to wait for Danyal; another asks her to start before the light fades." : "A neighbour asks Elif to wait for Danyal. The waiting households need her to start carrying water.") : ""} ${g.age === 18 ? (g.conditions.carriersFed ? "Before these lessons, food was set aside for the carriers. They can make extra trips if there is stored water to share." : "Before these lessons, the carriers missed meals. If the upper spring runs, counting alone leaves too many trips; she needs to inspect it or work with Danyal.") : ""}`;
 }
 export interface Run {
   game: "child";
-  edition: 2;
+  edition: 3;
   engine: "3.2.0";
   seed: number;
   slice: boolean;
@@ -750,7 +781,7 @@ export function hash(g: unknown): string {
 export function exportRun(g: Game): Run {
   return {
     game: "child",
-    edition: 2,
+    edition: 3,
     engine: "3.2.0",
     seed: g.seed,
     slice: g.slice,
@@ -762,7 +793,7 @@ export function exportRun(g: Game): Run {
 export function replay(run: Run): Game {
   if (
     run.game !== "child" ||
-    run.edition !== 2 ||
+    run.edition !== 3 ||
     run.engine !== "3.2.0" ||
     !Number.isSafeInteger(run.seed) ||
     run.inputs.length > 1000

@@ -1,10 +1,11 @@
 import "./style.css";
-import { preparationChoices } from "./choices";
+import { foodStatus, preparationChoices, preparationProgress } from "./choices";
 import { initLab } from "./lab";
 import {
   chapterGoals,
   conditionsText,
   createGame,
+  endingReason,
   exportRun,
   type Input,
   type Practice,
@@ -124,6 +125,13 @@ function draw() {
           ? "Now she goes alone."
           : "One ordinary afternoon.";
     p.textContent = game.lastLesson;
+    const progress = document.createElement("p");
+    progress.className = "preparation-progress";
+    progress.textContent =
+      game.preparations === 0
+        ? "Choose work for three afternoons. Then she goes alone."
+        : preparationProgress(game.preparations);
+    story.append(progress);
     if (game.preparations === 0) {
       const goal = document.createElement("p");
       goal.textContent = chapterGoals[game.age] ?? "";
@@ -186,6 +194,12 @@ function draw() {
     p.textContent = slice
       ? "This day stays in her yearbook."
       : "Elif is the adult on duty now. What she did came from the work she watched.";
+    if (game.outcome) {
+      const consequence = document.createElement("p");
+      consequence.className = "ending-consequence";
+      consequence.textContent = endingReason(game);
+      story.append(consequence);
+    }
     const journal = document.createElement("div");
     journal.className = "journal";
     for (const memory of game.history) {
@@ -200,7 +214,7 @@ function draw() {
       draw();
     });
   }
-  status.textContent = `${saveWarning ? `${saveWarning} ` : ""}${game.food <= 3 ? "The food stores are nearly empty." : game.food <= 7 ? "The food stores are running low." : "There is food for the household."} ${game.repairs <= 3 ? "The well rope needs work." : "The well rope is holding."}`;
+  status.textContent = `${saveWarning ? `${saveWarning} ` : ""}${foodStatus(game.food)} Emergency water: ${game.waterReserve} household ${game.waterReserve === 1 ? "share" : "shares"}. ${game.repairs <= 3 ? "The well rope needs work." : "The well rope is holding."}`;
 }
 const menu = document.createElement("dialog");
 menu.className = "menu";

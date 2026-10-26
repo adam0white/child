@@ -37,3 +37,17 @@ One read-only Codex reviewer (GPT-6.1 Sol, medium effort) checked the complete c
 The reviewer found the remaining age purposes, witnessed-practice markers and adult attribution consistent with the model, and found no simulation or replay change. The fixes only replace these two strings. Final local checks and browser runs are repeated after them.
 
 The first iteration-3 CI run passed 19/20 browser checks but exposed a pre-existing clock race in the four-second reveal assertion: installing the clock left it advancing during driver work. The test now pauses the installed clock before clicking, then explicitly advances 3,900 and 100 milliseconds. No game timer changed. This test-only correction follows the independent product review.
+
+## Iteration 4 — independent Codex review
+
+Two fresh read-only Codex reviewers checked the complete iteration-4 diff against e96171e. Both used GPT-6.1 Sol: medium effort for model correctness and low effort for presentation. Neither implemented the slice.
+
+Verified and corrected findings:
+
+- A possible age-eighteen freeze lacked a visible request to wait. The preparation now attributes the conflicting requests to two neighbours, while the narrator states the physical requirements.
+- Failed final movement could still describe completed deliveries. Each failed final action now shows its attempted practice and leaves the last households visibly waiting. The failed counting explanation describes insufficient water rather than claiming completed division.
+- Earlier failure copy could claim stored water was spent after the emergency store was empty. Only the conditional emergency-store consequence now states whether stored water covered the shortfall; the base failure text names the shortfall.
+
+The model reviewer independently checked a careful inspection win, a careless loss with the same final inspection, and two distinct successful routes (counting and inspection). Those controls replayed exactly. New regressions caught the failure-copy issues before correction. The new physical water rule does not change HF action selection or introduce framework logic.
+
+The first browser run exposed a pre-existing notice race: the asynchronous first-visit recording notice could appear after the test's one-time check and intercept a later click. The test harness now dismisses the notice whenever it appears, including after reload. Product notice behavior is unchanged. Final checks use the explicit Node 26.12.0 path; the login shell's older Node was detected during verification and excluded from final evidence.

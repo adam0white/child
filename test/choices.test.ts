@@ -43,3 +43,17 @@ it("distinguishes a first demonstration from one she has already witnessed", () 
     );
   }
 });
+
+it("states empty stores exactly and distinguishes a field addition from its resulting level", async () => {
+  const { foodStatus, preparationProgress } = await import("../src/choices");
+  expect(foodStatus(0)).toBe("The food stores are empty.");
+  expect(foodStatus(2)).toBe("The food stores are nearly empty.");
+  expect(preparationProgress(1)).toBe("Afternoon 1 of 3 is finished.");
+  expect(preparationProgress(2)).toBe("Afternoon 2 of 3 is finished.");
+  const game = createGame(21);
+  game.food = 1;
+  expect(preparationChoices(game)[4]?.detail).toContain("add food");
+  expect(preparationChoices(game)[4]?.detail).not.toContain(
+    "fill the food stores",
+  );
+});

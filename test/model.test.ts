@@ -207,3 +207,101 @@ it("field work plus a single gap companion is not a universal final win", () => 
     expect(wins).toContain(false);
   }
 });
+
+function upbringing(careful: boolean) {
+  const g = createGame(21);
+  const lessons: Practice[] = ["count", "look", "refuse", "look", "look"];
+  for (let chapter = 0; chapter < 5; chapter++) {
+    for (let i = 0; i < 3; i++)
+      step(
+        g,
+        careful || chapter === 4
+          ? { type: "teach", practice: lessons[chapter] ?? "look" }
+          : { type: "work" },
+      );
+    step(g, { type: "crisis" });
+    step(g, { type: "reveal" });
+    step(g, { type: "arrange", practice: "look" });
+  }
+  return g;
+}
+
+it("earlier shortfalls can lose despite the same final learned inspection", () => {
+  const careful = upbringing(true);
+  const careless = upbringing(false);
+  expect(careful.outcome?.action).toBe("look");
+  expect(careless.outcome?.action).toBe("look");
+  expect(careful.outcome?.success).toBe(true);
+  expect(careless.outcome?.success).toBe(false);
+  expect(careful.waterReserve).toBe(1);
+  expect(careless.waterReserve).toBe(0);
+  expect(careless.outcome?.cost).toContain("emergency store");
+  expect(careless.outcome?.cost).toContain("At 10");
+  expect(careless.outcome?.cost).toContain("Yusuf");
+  expect(hash(replay(exportRun(careless)))).toBe(hash(careless));
+});
+
+it("yearbook repeats an unfit method's actual explanation rather than inventing an act", () => {
+  const g = createGame(21, true);
+  for (let i = 0; i < 3; i++) step(g, { type: "teach", practice: "wait" });
+  step(g, { type: "crisis" });
+  expect(g.outcome?.memory).toContain(g.outcome?.line);
+});
+
+it("replay rejects an older rule edition even when its hash is otherwise valid", () => {
+  const run = exportRun(createGame(21));
+  const older = { ...run, edition: 2 };
+  expect(() => replay(older as typeof run)).toThrow("original game version");
+});
+
+it("preserved emergency water allows both counting and inspection to complete delivery", () => {
+  for (const finalPractice of ["count", "look"] as const) {
+    const g = createGame(22);
+    const earlier: Practice[] = ["count", "look", "refuse", "look"];
+    for (let chapter = 0; chapter < 5; chapter++) {
+      const practice = earlier[chapter] ?? finalPractice;
+      for (let i = 0; i < 3; i++) step(g, { type: "teach", practice });
+      step(g, { type: "crisis" });
+      step(g, { type: "reveal" });
+      step(g, { type: "arrange", practice });
+    }
+    expect(g.outcome?.action).toBe(finalPractice);
+    expect(g.outcome?.success).toBe(true);
+    expect(g.waterReserve).toBe(1);
+    expect(g.outcome?.cost).toContain("while the carriers return");
+  }
+});
+
+it("failed final routes show undelivered households rather than completed deliveries", () => {
+  for (const practice of ["count", "look"] as const) {
+    const g = createGame(22);
+    g.age = 18;
+    g.conditions.seep = practice === "count";
+    for (let i = 0; i < 3; i++) step(g, { type: "teach", practice });
+    step(g, { type: "crisis" });
+    expect(g.outcome?.success).toBe(false);
+    expect(g.outcome?.movement).toContain("last households still wait");
+  }
+});
+
+it("an exhausted emergency store does not claim Elif divided stored water", () => {
+  const g = createGame(22);
+  g.age = 18;
+  g.waterReserve = 0;
+  g.conditions.variant = 2;
+  for (let i = 0; i < 3; i++) step(g, { type: "teach", practice: "count" });
+  step(g, { type: "crisis" });
+  expect(g.outcome?.action).toBe("count");
+  expect(g.outcome?.line).not.toContain("divided our stored water");
+  expect(g.outcome?.memory).toContain(g.outcome?.line);
+});
+
+it("a failed early errand cannot spend emergency water after the store is empty", () => {
+  const g = createGame(21, true);
+  g.waterReserve = 0;
+  for (let i = 0; i < 3; i++) step(g, { type: "teach", practice: "wait" });
+  step(g, { type: "crisis" });
+  expect(g.outcome?.success).toBe(false);
+  expect(g.outcome?.cost).toContain("no stored water left");
+  expect(g.outcome?.cost).not.toContain("uses its stored water");
+});

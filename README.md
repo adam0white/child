@@ -10,23 +10,23 @@ The game opens at age three, or resumes this browser's saved run. You play Zehra
 
 Each age has three preparations. Choose an adult for Elif to watch, or work to restore household supplies:
 
-| Control                | Example and cost                                                                        |
-| ---------------------- | --------------------------------------------------------------------------------------- |
-| **Go with Maryam**     | Count before sharing. Maryam leaves meal work undone; food stores fall.                 |
-| **Go with Yusuf**      | Check a path first. Field work is left undone; food falls, but the route becomes known. |
-| **Go with Danyal**     | Wait for the keeper. Well repairs are delayed.                                          |
-| **Stay home with you** | Keep a jar for home and refuse another request. Staying home uses food stores.          |
-| **Work in the field**  | Food stores recover and you mend the well rope. Elif plays without watching a new task. |
+| Control                | Example and cost                                                                             |
+| ---------------------- | -------------------------------------------------------------------------------------------- |
+| **Go with Maryam**     | Count before sharing. Maryam leaves meal work undone; food stores fall.                      |
+| **Go with Yusuf**      | Check a path first. Field work is left undone; food falls, but the route becomes known.      |
+| **Go with Danyal**     | Wait for the keeper. Well repairs are delayed.                                               |
+| **Stay home with you** | Keep a jar for home and refuse another request. Staying home uses food stores.               |
+| **Work in the field**  | Food stores recover and you mend the well rope. Elif stays home without watching a new task. |
 
 Read the coming conditions before each preparation. After three preparations, choose **Let her go**. Watch Elif move; her explanation and the cost appear automatically. You observe her crisis choice rather than select it.
 
-At ages three, six, ten and fourteen, her goals are to keep an evening jar, bring water home, keep a queue place and share the winter store. A shortfall uses stored water and the run continues. Food and well condition carry forward. Success also has costs, such as thin meals, delayed repairs or neighbours waiting.
+At ages three, six, ten and fourteen, her goals are to keep an evening jar, bring water home, keep a queue place and share the winter store. The household starts with two emergency household shares. Each shortfall spends one, down to zero, and the run continues. Ordinary daily supplies do not refill this store. Food and well condition also carry forward. Success also has costs, such as thin meals, delayed repairs or neighbours waiting.
 
 After each of these crises, choose **Keep working with Maryam**, **Yusuf**, **Danyal** or **you**. One task with that companion stays with her through the intervening years. The next three lived lessons can change what she does. Counting and refusing reduce food recovery; checking paths reduces it less; waiting reduces repair recovery.
 
-At eighteen, win by bringing water to every waiting household by night. Failure leaves the last households without water. Choose **Close this page** to reach the ending and yearbook; it does not close the browser tab. **Begin again** starts a new upbringing.
+At eighteen, win by bringing water to every waiting household by night. The last deliveries need one emergency household share while carriers return; if earlier shortfalls emptied the store, the last households go without even when her final practice fits. Failure leaves the last households without water. Choose **Close this page** to reach the ending and yearbook; it does not close the browser tab. **Begin again** starts a new upbringing.
 
-**Menu** pauses the reveal. **Resume** continues it. The menu also offers **Feedback**, **Recording: on/off**, **Full screen**, **All games** and **New game** with confirmation. Ordinary play saves locally when browser storage works. Reopening the game continues that saved run. Iteration 2 uses replay edition 2; edition 1 exports require the original release, and an old local save starts a new upbringing with a visible notice.
+**Menu** pauses the reveal. **Resume** continues it. The menu also offers **Feedback**, **Recording: on/off**, **Full screen**, **All games** and **New game** with confirmation. Ordinary play saves locally when browser storage works. Reopening the game continues that saved run. Iteration 4 uses replay edition 3; edition 1 and 2 exports require their original releases, and an old local save starts a new upbringing with a visible notice.
 
 ## What HF demonstrates
 

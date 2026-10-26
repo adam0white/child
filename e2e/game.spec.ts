@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  const notice = page.getByRole("complementary", { name: "Play recording" });
+  await page.addLocatorHandler(notice, async () => {
+    await notice.getByRole("button", { name: "Continue", exact: true }).click();
+  });
+});
+
 test("conditions precede every lesson, movement lasts four seconds, and the yearbook recalls a lesson", async ({
   page,
 }) => {
@@ -14,7 +21,7 @@ test("conditions precede every lesson, movement lasts four seconds, and the year
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Work in the field/ }),
-  ).toContainText("food stores and mend the well rope");
+  ).toContainText("food to the stores and mend the well rope");
   await expect(
     page.getByRole("button", { name: /Stay with Zehra/ }),
   ).toHaveCount(0);
@@ -43,6 +50,10 @@ test("conditions precede every lesson, movement lasts four seconds, and the year
   const memory = page.locator(".journal p");
   await expect(memory).toContainText("At 6:");
   await expect(memory).toContainText("Yusuf");
+  await expect(page.locator(".ending-consequence")).toContainText("Yusuf");
+  await expect(page.locator(".ending-consequence")).toContainText(
+    aftermathCost ?? "missing cost",
+  );
   await expect(memory).not.toContainText(aftermathLine ?? "missing line");
   await expect(memory).not.toContainText(aftermathCost ?? "missing cost");
 });
@@ -197,4 +208,75 @@ test("importing a movement resumes, and cached navigation keeps the canvas", asy
     ),
   );
   await expect(page.locator(".scene canvas")).toBeAttached();
+});
+
+test("field work advances each afternoon and the third click sends her alone", async ({
+  page,
+}) => {
+  await page.goto("/?lab=1&slice=6");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
+  const notice = page.getByRole("complementary", { name: "Play recording" });
+  if (await notice.isVisible())
+    await notice.getByRole("button", { name: "Continue", exact: true }).click();
+  for (let afternoon = 1; afternoon <= 3; afternoon++) {
+    await page.getByRole("button", { name: /Work in the field/ }).click();
+    await expect(page.locator(".preparation-progress")).toHaveText(
+      `Afternoon ${afternoon} of 3 is finished.`,
+    );
+  }
+  await expect(
+    page.getByRole("heading", { name: "Now she goes alone." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Work in the field/ }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: /Let her go/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Watch Elif." }),
+  ).toBeVisible();
+});
+
+test("repeated unsuitable raising leaves a visible final loss after earlier shortfalls", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/?lab=1");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
+  const notice = page.getByRole("complementary", { name: "Play recording" });
+  if (await notice.isVisible())
+    await notice.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.clock.install();
+  for (let chapter = 0; chapter < 5; chapter++) {
+    for (let afternoon = 0; afternoon < 3; afternoon++)
+      await page.getByRole("button", { name: /Go with Danyal/ }).click();
+    if (chapter === 4)
+      await expect(page.locator(".conditions")).toContainText(
+        "0 household shares left",
+      );
+    await page.getByRole("button", { name: /Let her go/ }).click();
+    await page.clock.runFor(2100);
+    if (chapter < 4)
+      await page
+        .getByRole("button", { name: /Keep working with Danyal/ })
+        .click();
+    else await page.getByRole("button", { name: /Close this page/ }).click();
+  }
+  await expect(
+    page.getByRole("heading", {
+      name: "The last households go without.",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.locator(".ending-consequence")).toContainText("Danyal");
+  await expect(page.locator(".ending-consequence")).toContainText(
+    "emergency store is empty",
+  );
+  await expect(page.locator(".ending-consequence")).toContainText("At 3");
+  await page.reload();
+  await expect(
+    page.getByRole("heading", {
+      name: "The last households go without.",
+      exact: true,
+    }),
+  ).toBeVisible();
 });
