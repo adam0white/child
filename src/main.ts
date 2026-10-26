@@ -1,4 +1,5 @@
 import "./style.css";
+import { preparationChoices } from "./choices";
 import { initLab } from "./lab";
 import {
   chapterGoals,
@@ -133,19 +134,8 @@ function draw() {
     c.textContent = conditionsText(game);
     story.append(c);
     if (game.preparations < 3) {
-      for (const practice of practices)
-        button(
-          practice === "refuse"
-            ? "Stay home with you"
-            : `Go with ${teachers[practice]}`,
-          costs[practice],
-          () => dispatch({ type: "teach", practice }),
-        );
-      button(
-        "Work in the field",
-        "You add to the food stores and mend the well rope. Elif stays home.",
-        () => dispatch({ type: "work" }),
-      );
+      for (const choice of preparationChoices(game))
+        button(choice.title, choice.detail, () => dispatch(choice.input));
     } else
       button("Let her go", "Watch what she does.", () =>
         dispatch({ type: "crisis" }),

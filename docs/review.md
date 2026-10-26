@@ -26,3 +26,12 @@ The model reviewer independently reproduced a real freeze from faded waiting and
 The first browser pass caught one stale assertion expecting the removed “Nobody came before dusk” line. The assertion now checks the honest unfit-practice line. This was an expected text change, not a runtime failure.
 
 The broader field-work control exposed a remaining universal Maryam win. The final day now discloses an empty household water store in one seeded condition, which closes counting and leaves inspection or Danyal available. The model reviewer checked that final gate and its disclosure separately and found no blockers. All-teach and all-work regressions now reject a universal companion win across seeds 21–24.
+
+## Iteration 3 — independent Codex review
+
+One read-only Codex reviewer (GPT-6.1 Sol, medium effort) checked the complete choice-text diff against 400a62a, including the new presentation helper, tests and model semantics. Two P2 copy findings were verified and corrected:
+
+- At six, refusal keeps an empty jar at home. The choice now describes keeping the jar home, rather than retaining water on the way back.
+- Final-day carriers have already eaten or missed meals at chapter entry. Field work now describes putting food by for the household, rather than feeding today's carriers.
+
+The reviewer found the remaining age purposes, witnessed-practice markers and adult attribution consistent with the model, and found no simulation or replay change. The fixes only replace these two strings. Final local checks and browser runs are repeated after them.

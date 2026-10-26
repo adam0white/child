@@ -95,12 +95,30 @@ test("full upbringing reaches an ending, saves, and exports a replay", async ({
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
     await notice.getByRole("button", { name: "Continue", exact: true }).click();
+  const descriptions = Array.from({ length: 5 }, () => new Set<string>());
   for (let c = 0; c < 5; c++) {
+    const details = await page
+      .locator(".choices button span")
+      .allTextContents();
+    expect(details).toHaveLength(5);
+    details.forEach((detail, i) => {
+      descriptions[i]?.add(detail);
+    });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
     const name = c === 1 || c >= 3 ? "Yusuf" : c === 2 ? "Zehra" : "Maryam";
     const choice =
       name === "Zehra" ? /Stay home with you/ : new RegExp(`Go with ${name}`);
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 3; i++) {
       await page.getByRole("button", { name: choice }).click();
+      if (i === 0)
+        await expect(page.getByRole("button", { name: choice })).toContainText(
+          "again",
+        );
+    }
     await page.getByRole("button", { name: /Let her go/ }).click();
     await expect(
       page.getByRole("heading", { name: "Watch Elif." }),
@@ -116,6 +134,7 @@ test("full upbringing reaches an ending, saves, and exports a replay", async ({
         .click();
     else await page.getByRole("button", { name: /Close this page/ }).click();
   }
+  for (const seen of descriptions) expect(seen.size).toBe(5);
   await expect(
     page.getByRole("heading", {
       name: /Every household has water\.|The last households go without\./,
