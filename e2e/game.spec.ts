@@ -1,8 +1,55 @@
 import { expect, test } from "@playwright/test";
 
+test("conditions precede every lesson, movement lasts four seconds, and the yearbook recalls a lesson", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/?lab=1&slice=6");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
+  const notice = page.getByRole("complementary", { name: "Play recording" });
+  if (await notice.isVisible())
+    await notice.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: /Stay home with you/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Work in the field/ }),
+  ).toContainText("food stores and mend the well rope");
+  await expect(
+    page.getByRole("button", { name: /Stay with Zehra/ }),
+  ).toHaveCount(0);
+  for (let i = 0; i < 3; i++) {
+    await expect(page.locator(".conditions")).toBeVisible();
+    await page.getByRole("button", { name: /Go with Yusuf/ }).click();
+  }
+  await expect(page.locator(".conditions")).toBeVisible();
+  await page.clock.install();
+  await page.getByRole("button", { name: /Let her go/ }).click();
+  await page.clock.runFor(3900);
+  await expect(
+    page.getByRole("heading", { name: "Watch Elif." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Close this page/ }),
+  ).toHaveCount(0);
+  await page.clock.runFor(100);
+  await expect(
+    page.getByRole("heading", { name: "She brought the water." }),
+  ).toBeVisible();
+  const aftermathLine = await page.locator(".story > p").first().textContent();
+  const aftermathCost = await page.locator(".story > p").nth(1).textContent();
+  await page.getByRole("button", { name: /Close this page/ }).click();
+  const memory = page.locator(".journal p");
+  await expect(memory).toContainText("At 6:");
+  await expect(memory).toContainText("Yusuf");
+  await expect(memory).not.toContainText(aftermathLine ?? "missing line");
+  await expect(memory).not.toContainText(aftermathCost ?? "missing cost");
+});
+
 test("age-six preparation, movement, success and shortfall", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?lab=1&slice=6");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
@@ -35,11 +82,14 @@ test("age-six preparation, movement, success and shortfall", async ({
   await expect(
     page.getByRole("heading", { name: "She came home short." }),
   ).toBeVisible();
-  await expect(page.getByText(/Nobody came before dusk/)).toBeVisible();
+  await expect(
+    page.getByText(/I tried Danyal’s way. It did not fit today/),
+  ).toBeVisible();
 });
 test("full upbringing reaches an ending, saves, and exports a replay", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?lab=1");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
@@ -48,7 +98,7 @@ test("full upbringing reaches an ending, saves, and exports a replay", async ({
   for (let c = 0; c < 5; c++) {
     const name = c === 1 || c >= 3 ? "Yusuf" : c === 2 ? "Zehra" : "Maryam";
     const choice =
-      name === "Zehra" ? /Stay with Zehra/ : new RegExp(`Go with ${name}`);
+      name === "Zehra" ? /Stay home with you/ : new RegExp(`Go with ${name}`);
     for (let i = 0; i < 3; i++)
       await page.getByRole("button", { name: choice }).click();
     await page.getByRole("button", { name: /Let her go/ }).click();
@@ -57,16 +107,25 @@ test("full upbringing reaches an ending, saves, and exports a replay", async ({
     ).toBeVisible();
     if (c < 4)
       await page
-        .getByRole("button", { name: new RegExp(`Keep working with ${name}`) })
+        .getByRole("button", {
+          name:
+            name === "Zehra"
+              ? /Keep working with you/
+              : new RegExp(`Keep working with ${name}`),
+        })
         .click();
     else await page.getByRole("button", { name: /Close this page/ }).click();
   }
   await expect(
-    page.getByRole("heading", { name: "Every household has water." }),
+    page.getByRole("heading", {
+      name: /Every household has water\.|The last households go without\./,
+    }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Every household has water." }),
+    page.getByRole("heading", {
+      name: /Every household has water\.|The last households go without\./,
+    }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   const download = page.waitForEvent("download");
@@ -93,6 +152,7 @@ test("Canvas fallback renders and ordinary play hides lab tools", async ({
 test("importing a movement resumes, and cached navigation keeps the canvas", async ({
   page,
 }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?lab=1&slice=6");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });

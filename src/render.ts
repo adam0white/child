@@ -473,7 +473,7 @@ export async function createRenderer(
     const progress =
       motion.matches || frame.phase !== "movement"
         ? 1
-        : Math.min(1, (now - started) / 1350);
+        : Math.min(1, (now - started) / 3400);
     draw(scenePen, frame, progress, now, motion.matches);
     app?.render();
     if (frame.phase === "movement" && progress < 1)

@@ -78,9 +78,12 @@ function save() {
 }
 function scheduleReveal() {
   clearTimeout(timer);
-  timer = setTimeout(() => {
-    if (!menu.open) dispatch({ type: "reveal" });
-  }, 1800);
+  timer = setTimeout(
+    () => {
+      if (!menu.open) dispatch({ type: "reveal" });
+    },
+    matchMedia("(prefers-reduced-motion: reduce)").matches ? 2000 : 4000,
+  );
 }
 function dispatch(input: Input) {
   step(game, input);
@@ -92,7 +95,7 @@ function dispatch(input: Input) {
 const costs: Record<Practice, string> = {
   count: "She counts jars. Maryam leaves meal work undone.",
   look: "She checks a path. Yusuf leaves field work undone.",
-  wait: "She waits with Danyal. Well repairs are delayed.",
+  wait: "She waits with Danyal. Work on the well rope is delayed.",
   refuse: "You keep a jar for home. Staying home uses food stores.",
 };
 function draw() {
@@ -125,24 +128,22 @@ function draw() {
       goal.textContent = chapterGoals[game.age] ?? "";
       story.append(goal);
     }
-    if (game.preparations >= 2) {
-      const c = document.createElement("p");
-      c.className = "conditions";
-      c.textContent = conditionsText(game);
-      story.append(c);
-    }
+    const c = document.createElement("p");
+    c.className = "conditions";
+    c.textContent = conditionsText(game);
+    story.append(c);
     if (game.preparations < 3) {
       for (const practice of practices)
         button(
           practice === "refuse"
-            ? "Stay with Zehra"
+            ? "Stay home with you"
             : `Go with ${teachers[practice]}`,
           costs[practice],
           () => dispatch({ type: "teach", practice }),
         );
       button(
         "Work in the field",
-        "Food and repairs recover. Elif receives no new example.",
+        "You add to the food stores and mend the well rope. Elif stays home.",
         () => dispatch({ type: "work" }),
       );
     } else
@@ -176,8 +177,12 @@ function draw() {
         "Who will she keep working beside through the coming years?";
       story.append(arrange);
       for (const practice of practices)
-        button(`Keep working with ${teachers[practice]}`, costs[practice], () =>
-          dispatch({ type: "arrange", practice }),
+        button(
+          practice === "refuse"
+            ? "Keep working with you"
+            : `Keep working with ${teachers[practice]}`,
+          costs[practice],
+          () => dispatch({ type: "arrange", practice }),
         );
     }
   } else {
@@ -186,7 +191,7 @@ function draw() {
         ? "The household has water."
         : "Every household has water."
       : slice
-        ? "Tonight they use the reserve."
+        ? "Tonight they use the water stored at home."
         : "The last households go without.";
     p.textContent = slice
       ? "This day stays in her yearbook."
@@ -195,7 +200,7 @@ function draw() {
     journal.className = "journal";
     for (const memory of game.history) {
       const row = document.createElement("p");
-      row.textContent = `At ${memory.age}: “${memory.line}” ${memory.cost}`;
+      row.textContent = `At ${memory.age}: “${memory.memory}”`;
       journal.append(row);
     }
     story.append(journal);
@@ -205,7 +210,7 @@ function draw() {
       draw();
     });
   }
-  status.textContent = `${saveWarning ? `${saveWarning} ` : ""}${game.food <= 3 ? "The household reserve is nearly empty." : game.food <= 7 ? "Meals are getting thin." : "There is food for the household."} ${game.repairs <= 3 ? "The well rope needs work." : "The well rope is holding."}`;
+  status.textContent = `${saveWarning ? `${saveWarning} ` : ""}${game.food <= 3 ? "The food stores are nearly empty." : game.food <= 7 ? "The food stores are running low." : "There is food for the household."} ${game.repairs <= 3 ? "The well rope needs work." : "The well rope is holding."}`;
 }
 const menu = document.createElement("dialog");
 menu.className = "menu";
