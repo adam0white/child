@@ -8,15 +8,16 @@ Done means a complete small run with both winning and losing endings, exact repl
 
 Cues describe situations, never ages or chapter numbers. Demonstrations and crises share these exact keys and values throughout the run.
 
-| Cue | Values | Meaning |
-| --- | --- | --- |
-| supply | scarce | The available water or food may run short. |
-| route | uncertain | A route or source needs inspection. |
-| keeper | present, absent | A trusted keeper can or cannot help today. |
-| pressure | repeated | Someone asks again or pushes past a limit. |
-| conflict | stop-or-go | A keeper orders her to stay while an urgent errand needs action. |
+| Cue          | Values          | Meaning                                                          |
+| ------------ | --------------- | ---------------------------------------------------------------- |
+| supply       | scarce          | The available water or food may run short.                       |
+| route        | uncertain       | A route or source needs inspection.                              |
+| keeper       | needed          | A task could use the trusted keeper.                             |
+| availability | present, absent | The keeper can or cannot help today.                             |
+| pressure     | repeated        | Someone asks again or pushes past a limit.                       |
+| conflict     | stop-or-go      | A keeper orders her to stay while an urgent errand needs action. |
 
-Four method actions: `count` (Maryam, count before sharing), `look` (Yusuf, go and look first), `wait` (Danyal, wait for the keeper), `refuse` (Zehra, say no and mean it). Each demonstration uses one stable condition: supply scarce, route uncertain, keeper present, pressure repeated respectively. Situations can carry several cues. HF selects among the methods she holds. Mixed exposure is useful. An explicit `freeze` offer exists only with visible stop-or-go conflict; weak acquired support can leave that conflict unresolved. No blanket penalty for mixed exposure.
+Four method actions: `count` (Maryam, count before sharing), `look` (Yusuf, go and look first), `wait` (Danyal, wait for the keeper), `refuse` (Zehra, say no and mean it). Each demonstration uses one stable condition: supply scarce, route uncertain, keeper needed, pressure repeated respectively. Situations can carry several cues. HF selects among the methods she holds. Mixed exposure is useful. An explicit `freeze` offer exists only with visible stop-or-go conflict; weak acquired support can leave that conflict unresolved. No blanket penalty for mixed exposure.
 
 ## A game with costs
 
@@ -24,19 +25,19 @@ Each chapter has three preparations. A companion teaches through a witnessed tas
 
 The last preparation shows the conditions of the coming crisis, including Danyal's availability. Seed and earlier food, repair and route outcomes change those conditions. At least two practices meet each chapter's goal with different costs. Others can bring a shortfall with a visible consequence. Final success is enough water for all, not a parenting score. Earlier shortfalls reduce stores or repair capacity; they do not end the run.
 
-| Age | Goal | Workable approaches and differing costs |
-| --- | --- | --- |
-| 3 | Keep an evening jar for home. | Count shares (time); refuse a repeat request (neighbour waits). |
-| 6 | Bring the household water home. | Inspect a dry upper route (food/time); count smaller safe trips (well wear). With a present keeper, waiting also works but delays repairs. A flooded lower path or absent keeper causes a shortfall. |
-| 10 | Keep the household's place in the queue. | Refuse pressure (friction); count and arrange turns (stores); a present keeper can settle it (repair delay). |
-| 14 | Divide the winter store so nobody goes without. | Count portions (thin household meals); inspect the reserve (repair work deferred). |
-| 18 | Supply every waiting household by night. | Count and ration (household reserve spent); inspect a usable seep (path work); hold the queue (neighbours wait). A present keeper can organise turns at repair cost. Poor settlement state can close one of these routes; two remain. |
+| Age | Goal                                            | Workable approaches and differing costs                                                                                                                                                                                               |
+| --- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3   | Keep an evening jar for home.                   | Count shares (time); refuse a repeat request (neighbour waits).                                                                                                                                                                       |
+| 6   | Bring the household water home.                 | Inspect a dry upper route (food/time); count smaller safe trips (well wear). With a present keeper, waiting also works but delays repairs. A flooded lower path or absent keeper causes a shortfall.                                  |
+| 10  | Keep the household's place in the queue.        | Refuse pressure (friction); count and arrange turns (stores); a present keeper can settle it (repair delay).                                                                                                                          |
+| 14  | Divide the winter store so nobody goes without. | Count portions (thin household meals); inspect the reserve (repair work deferred).                                                                                                                                                    |
+| 18  | Supply every waiting household by night.        | Count and ration (household reserve spent); inspect a usable seep (path work); hold the queue (neighbours wait). A present keeper can organise turns at repair cost. Poor settlement state can close one of these routes; two remain. |
 
 ## Build order and HF ownership
 
 First implement age six only, preparation, crisis, movement, aftermath. Prove success, shortfall, explicit confusion and same-seed different movement headless and in a browser. Only then add ages three, ten, fourteen, eighteen.
 
-HF 3.2.0, exactly pinned, owns Person state, method evidence and decisions. Use receiveMethodCues, demonstrateMethod and decide. Never write methods.context. No new HF capability and no engine edits. Monthly liveCommunity steps advance the entire cast between chapters; demonstrations occur at Elif.now between steps. Elif has no second aging loop. Host code owns physical water, food, routes and task results. No copied learning, cognition or trust logic.
+HF 3.2.0, exactly pinned, owns Person state, method evidence and decisions. Use receiveMethodCues, demonstrateMethod and decide. Never write methods.context. No new HF capability and no engine edits. Crisis presentation holds on the community day boundary; it never adds a partial body day. Monthly liveCommunity steps advance the entire cast between chapters; demonstrations occur at Elif.now between steps. Elif has no second aging loop. Host code owns physical water, food, routes and task results. No copied learning, cognition or trust logic.
 
 ## Visual and technical choices
 
@@ -46,7 +47,7 @@ At 360×690 the scene stays above the choice text. One focused decision appears 
 
 ## Cast
 
-Canonical Yusuf (34, builder), Maryam (68), Danyal (52, Christian well keeper), Tariq (16). Zehra is Yusuf's wife, now a foreground player body. Elif is their daughter. These two receive new registry entries under the coordinator's explicit allowance. This game is an authored branch, not a claim about another game's current continuation. No new faith rulings.
+Canonical Yusuf (34, builder), Maryam (68), Danyal (52, Christian well keeper), Tariq (16, Zehra’s stepson). Zehra is Yusuf's wife, now a foreground player body. Elif is their daughter. These two receive new registry entries under the coordinator's explicit allowance. This game is an authored branch, not a claim about another game's current continuation. No new faith rulings.
 
 ## Review decisions
 
