@@ -23,7 +23,8 @@ test("conditions precede every lesson, movement lasts four seconds, and the year
     await page.getByRole("button", { name: /Go with Yusuf/ }).click();
   }
   await expect(page.locator(".conditions")).toBeVisible();
-  await page.clock.install();
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-01-01T00:00:01Z"));
   await page.getByRole("button", { name: /Let her go/ }).click();
   await page.clock.runFor(3900);
   await expect(

@@ -35,3 +35,5 @@ One read-only Codex reviewer (GPT-6.1 Sol, medium effort) checked the complete c
 - Final-day carriers have already eaten or missed meals at chapter entry. Field work now describes putting food by for the household, rather than feeding today's carriers.
 
 The reviewer found the remaining age purposes, witnessed-practice markers and adult attribution consistent with the model, and found no simulation or replay change. The fixes only replace these two strings. Final local checks and browser runs are repeated after them.
+
+The first iteration-3 CI run passed 19/20 browser checks but exposed a pre-existing clock race in the four-second reveal assertion: installing the clock left it advancing during driver work. The test now pauses the installed clock before clicking, then explicitly advances 3,900 and 100 milliseconds. No game timer changed. This test-only correction follows the independent product review.
