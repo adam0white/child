@@ -43,7 +43,7 @@ HF 3.2.0, exactly pinned, owns Person state, method evidence and decisions. Use 
 
 PixiJS 8 with all words in the DOM. A cloth field fills the top of a narrow page. Stitched figures move along paths, count jars, wait beside the well, or hold an arm across the queue. Show movement before revealing her explanation. Canvas 2D implements the same frame protocol if WebGL fails. Use a main-thread HF host unless measurement shows a worker is needed; rendering receives only frames. The game has no runtime server or database. No React shell. Under five seconds ready on the spike phone profile is a release gate. Godot is excluded by its measured 52-second load. techspike/report.md was absent when read; the v2 reviews contain the corrected Pixi 3.8-second measurement.
 
-At 360×690 the scene stays above the choice text. One focused decision appears at a time. No numeric personality scores. The yearbook gives varied first-person recollections. Feedback offers stopping and confusion; first visit explains recording and one switch controls it. Diagnostic export and replay tools require ?lab=1. Reduced motion keeps a readable action pose and skips travel.
+At 360×690 the scene stays above the choice text. One focused decision appears at a time. No numeric personality scores. The yearbook gives varied first-person recollections. Feedback offers stopping and confusion; first visit explains recording and one switch controls it. Export and replay are public in Menu. Other ways to begin offers the age-six day. Canvas diagnostics sit in collapsed Debug beside Lab privacy. Reduced motion keeps a readable action pose and skips travel.
 
 ## Cast
 

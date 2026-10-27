@@ -50,10 +50,12 @@ Node26.12.0 and pnpm12.14.0. `pnpm install --frozen-lockfile`, then `pnpm dev`.
 
 Every actor decision uses the published HF3.2.0 package. Game code owns settlement resources and consequences. No framework source is vendored. The lab-client tarball is the immutable SDK0.4.11 GitHub release artifact; it retains its own exact HF3.0.0 dependency, separate from the game's3.2.0 import.
 
-Add `?lab=1` for replay export/import. Add `&slice=6` for the verified age-six sequence or `&canvas=1` for the Canvas2D renderer. Ordinary play saves on this device. Feedback and Recording are in Menu.
+Menu offers replay export/import and Other ways to begin → Begin at age six. The separate age-six day leaves the saved upbringing untouched. New game starts a full upbringing. Debug, initially collapsed beside Lab privacy, offers the Canvas2D diagnostic renderer. Ordinary play saves on this device. Feedback and Recording are in Menu.
 
 `node scripts/measure.mjs` serves compressed build assets and measures ready time at360×690, 562ms latency, 180KB/s and4× CPU slowdown. The initial split build measured5.06s; a single startup bundle measured3.77s. This chooses fewer loading round trips at the cost of a larger download (about360KB gzip).
 
 Deploy only after GitHub Actions is green on the exact signed commit. Build from a clean checkout, verify `dist/release.json` has that commit and `dirty:false`, then use `npx wrangler deploy`. Verify both the game and its live `/release.json`. The central listing is published separately by the coordinator.
 
 MIT code. The figures are drawn in code; every word is in the DOM.
+
+Automatic shared-person carryover remains incomplete. Child has no reciprocal native passport contract in the central shelf or receiving games; its teachers are authored roles without portable HF state. Keep their histories untouched. Follow-up: 2026-10-28, define reciprocal Child contracts before connecting shelf heads.
