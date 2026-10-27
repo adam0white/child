@@ -32,17 +32,25 @@ describe("age six learned actions", () => {
     expect(look.outcome?.success).toBe(true);
     expect(count.outcome?.cost).not.toBe(look.outcome?.cost);
   });
-  it("conflict is explicit, but mixed exposure still chooses a learned action", () => {
+  it("ways watched equally often leave her torn; the most watched way wins", () => {
     const g = createGame(21, true);
     step(g, { type: "teach", practice: "count" });
     step(g, { type: "teach", practice: "look" });
     step(g, { type: "teach", practice: "refuse" });
     step(g, { type: "crisis" });
-    expect(["count", "look", "refuse"]).toContain(g.outcome?.action);
+    expect(g.outcome?.action).toBe("freeze");
+    expect(g.outcome?.success).toBe(false);
+    expect(g.outcome?.line).toContain("Maryam’s way and Yusuf’s way");
+    expect(hash(replay(exportRun(g)))).toBe(hash(g));
+    const leaning = createGame(21, true);
+    step(leaning, { type: "teach", practice: "look" });
+    step(leaning, { type: "teach", practice: "refuse" });
+    step(leaning, { type: "teach", practice: "refuse" });
+    step(leaning, { type: "crisis" });
+    expect(leaning.outcome?.action).toBe("refuse");
     const unprepared = createGame(21, true);
     for (let i = 0; i < 3; i++) step(unprepared, { type: "work" });
     step(unprepared, { type: "crisis" });
-    expect(unprepared.conditions.conflict).toBe(true);
     expect(unprepared.outcome?.action).toBe("try");
   });
   it("keeps the outcome hidden until movement finishes, then exports an exact replay", () => {
@@ -160,28 +168,6 @@ it("Yusuf cannot make water exist, and depleted well rope closes the upper path"
   expect(g.routeKnown).toBe(true);
   expect(g.conditions.seep).toBe(false);
 });
-it("a real faded wait-or-go conflict can freeze, and replays exactly", () => {
-  const g = createGame(21);
-  for (let c = 0; c < 5; c++) {
-    for (let i = 0; i < 3; i++) {
-      const practice =
-        c === 0 && i === 0
-          ? "count"
-          : c === 1 && i === 0
-            ? "wait"
-            : c === 1 && i === 1
-              ? "look"
-              : undefined;
-      step(g, practice ? { type: "teach", practice } : { type: "work" });
-    }
-    step(g, { type: "crisis" });
-    step(g, { type: "reveal" });
-    if (c < 4) step(g, { type: "arrange", practice: "refuse" });
-  }
-  expect(g.outcome?.action).toBe("freeze");
-  expect(g.outcome?.line).toContain("Danyal");
-  expect(hash(replay(exportRun(g)))).toBe(hash(g));
-});
 it("yearbook recalls the lesson actually watched and records the result", () => {
   const g = createGame(21, true);
   step(g, { type: "teach", practice: "look" });
@@ -210,7 +196,7 @@ it("field work plus a single gap companion is not a universal final win", () => 
 
 function upbringing(careful: boolean) {
   const g = createGame(21);
-  const lessons: Practice[] = ["count", "look", "refuse", "look", "look"];
+  const lessons: Practice[] = ["count", "look", "refuse", "refuse", "look"];
   for (let chapter = 0; chapter < 5; chapter++) {
     for (let i = 0; i < 3; i++)
       step(

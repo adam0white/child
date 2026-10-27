@@ -129,7 +129,7 @@ function draw() {
     progress.className = "preparation-progress";
     progress.textContent =
       game.preparations === 0
-        ? "Choose work for three afternoons. Then she goes alone."
+        ? "Choose work for three afternoons. Then she goes alone. She uses the way she has watched most often, counting the task that stayed with her from the years before. If two ways are tied, she cannot choose between them."
         : preparationProgress(game.preparations);
     story.append(progress);
     if (game.preparations === 0) {

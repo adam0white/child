@@ -30,7 +30,7 @@ At eighteen, win by bringing water to every waiting household by night. The last
 
 ## What HF demonstrates
 
-HF3.2.0 holds Elif's acquired methods and chooses among available actions. The game supplies witnessed examples through `demonstrateMethod`, supplies situation cues through `receiveMethodCues`, and calls `decide` for the crisis. Counting, checking, waiting and refusing can fit different situations. Two matching, conflicting practices can leave her undecided.
+HF3.2.0 holds Elif's acquired methods and chooses among available actions. The game supplies witnessed examples through `demonstrateMethod`, supplies situation cues through `receiveMethodCues`, and calls `decide` for the crisis. Counting, checking, waiting and refusing fit different situations, but the cues are what a child sees, so she uses the way she has watched most. Two ways watched equally often leave her undecided.
 
 The game authors the settlement conditions, offered actions, goals, costs and success rules. Seed and earlier settlement outcomes affect those conditions. This is a bounded demonstration of acquired methods and cue-based choices, not evidence that the model explains general human learning. This run uses its own authored cast branch; it does not continue people from other games. Player and owner acceptance remain pending.
 

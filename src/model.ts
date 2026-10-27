@@ -27,7 +27,6 @@ export type Phase = "prepare" | "movement" | "aftermath" | "ending";
 export interface Conditions {
   available: boolean;
   flood: boolean;
-  conflict: boolean;
   seep: boolean;
   pressure: boolean;
   variant: number;
@@ -43,7 +42,7 @@ export interface Outcome {
   memory: string;
 }
 export interface Game {
-  edition: 3;
+  edition: 4;
   seed: number;
   slice: boolean;
   chapter: number;
@@ -154,7 +153,7 @@ export function createGame(seed = 21, slice = false): Game {
     }),
   );
   const g: Game = {
-    edition: 3,
+    edition: 4,
     seed,
     slice,
     chapter: 0,
@@ -173,7 +172,6 @@ export function createGame(seed = 21, slice = false): Game {
       carriersFed: true,
       available: false,
       flood: false,
-      conflict: false,
       seep: false,
       pressure: true,
     },
@@ -199,7 +197,6 @@ function refresh(g: Game) {
         (g.seed + g.chapter) % 3 !== 0) ||
       (g.seed + g.chapter + Math.max(0, 4 - g.repairs)) % 3 !== 0,
     flood: (g.seed + g.chapter) % 2 === 1,
-    conflict: (g.seed + g.chapter) % 2 === 1,
     seep: g.repairs >= 3 && (g.seed + g.chapter) % 3 !== 0,
     carriersFed: g.food >= 5,
     pressure: true,
@@ -349,25 +346,14 @@ export function step(g: Game, input: Input): void {
   g.inputs.push({ ...input });
 }
 function resolve(g: Game) {
-  const variant = g.conditions.variant;
-  const canCount =
-    g.age === 10
-      ? variant !== 1
-      : g.age === 18
-        ? !g.conditions.seep ||
-          (g.conditions.carriersFed && g.conditions.variant !== 1)
-        : true;
-  const canLook =
-    g.age === 10 ? variant === 1 : g.age >= 14 ? g.conditions.seep : true;
-  const hasPressure =
-    g.age === 14
-      ? !g.conditions.seep
-      : g.age === 18
-        ? !g.conditions.seep
-        : true;
+  // Elif receives what a child can see, not which method will work: water is
+  // always short, the path always uncertain and someone always asks again. Only
+  // Danyal's presence is visible. Which held method she uses therefore depends
+  // on how often and how recently she watched it, so a scattered upbringing
+  // gives her several equally familiar ways and no reason to pick the right one.
   const cues: MethodCue[] = [
-    { cue: "supply", value: canCount ? "scarce" : "contested" },
-    { cue: "route", value: canLook ? "uncertain" : "blocked" },
+    { cue: "supply", value: "scarce" },
+    { cue: "route", value: "uncertain" },
     {
       cue: "keeper",
       value:
@@ -375,14 +361,12 @@ function resolve(g: Game) {
           ? "needed"
           : "away",
     },
-    { cue: "pressure", value: hasPressure ? "repeated" : "settled" },
+    { cue: "pressure", value: "repeated" },
     {
       cue: "availability",
       value: g.conditions.available ? "present" : "absent",
     },
   ];
-  if (g.conditions.conflict)
-    cues.push({ cue: "conflict", value: "stop-or-go" });
   receiveMethodCues(g.child, { contextId: "crisis", cues });
   const held = practices.filter((a) =>
     g.child.methods?.rules.some((r) => r.action === a),
@@ -399,19 +383,6 @@ function resolve(g: Game) {
   const matching = held.filter(
     (a) => methodEvidence(g.child, a, "crisis").support > 0,
   );
-  const realConflict =
-    g.conditions.conflict &&
-    matching.includes("wait") &&
-    (matching.includes("look") || matching.includes("count"));
-  if (realConflict)
-    offers.push({
-      id: "freeze",
-      action: "freeze",
-      label: "Stay between the two paths.",
-      duration: 1,
-      effort: 0,
-      advertises: {},
-    });
   if (!offers.length)
     offers.push({
       id: "try",
@@ -421,11 +392,20 @@ function resolve(g: Game) {
       effort: 0,
       advertises: {},
     });
-  const d = decide(g.child, offers);
-  const action = d.chosenAction ?? "try";
+  // She uses the way she has watched most, counting the task that stayed with
+  // her between chapters. Two ways watched equally often give her nothing to
+  // prefer; the margin only absorbs evidence decay, since lessons in one chapter
+  // share a minute.
+  const ranked = matching
+    .map((a) => ({ a, s: methodEvidence(g.child, a, "crisis").support }))
+    .sort((x, y) => y.s - x.s || (x.a < y.a ? -1 : 1));
+  const [first, second] = ranked;
+  const torn =
+    first && second && first.s - second.s < 0.01 ? [first.a, second.a] : null;
+  const d = torn ? null : decide(g.child, offers);
+  const action = torn ? "freeze" : (d?.chosenAction ?? "try");
   let success = false;
-  let line =
-    "I could not decide whether to stay or go. I came home with an empty jar.";
+  let line = "";
   let cost = "The household comes home short tonight.";
   let movement = "Elif stops between the path and the well.";
   if (g.age === 6 && action === "look") {
@@ -591,21 +571,20 @@ function resolve(g: Game) {
     };
     const row = table[g.age]?.[action];
     success = row?.[0] ?? false;
-    line =
-      row?.[1] ??
-      {
-        3: "I could not decide whose jar to fill. I stayed beside our door.",
-        10: "I stood between the queue and the gate. Our place was gone when I moved.",
-        14: "I kept looking from one family to the next. The sharing did not begin.",
-        18: "I kept thinking of waiting with Danyal and going ahead alone. The last families waited without water.",
-      }[g.age] ??
-      "I could not decide whether to stay or go.";
+    line = row?.[1] ?? "";
     cost =
       row?.[2] ??
       (g.age === 18
         ? "The last households go without water before night."
         : "The household comes home short.");
-    movement = row?.[3] ?? "Elif stops between the path and the well.";
+    movement =
+      row?.[3] ??
+      {
+        3: "Elif stands beside the evening jar and looks from one way to the other.",
+        10: "Elif stops between the queue and the side gate.",
+        14: "Elif stands between the jars and does not begin the sharing.",
+      }[g.age] ??
+      "Elif stops between the path and the well.";
     if (success) {
       if (action === "count" || action === "refuse") g.food -= 2;
       else g.repairs -= 2;
@@ -632,9 +611,14 @@ function resolve(g: Game) {
       " One emergency household share supplies the last households while the carriers return.";
   }
   if (!success) g.food -= 3;
+  const tornNames = (torn ?? []).map((p) =>
+    p === "refuse" ? "Mother" : teachers[p as Practice],
+  );
   if (action === "try") {
     line = "I had no way I knew to try. I came home short.";
-  } else if (action !== "freeze" && !matching.includes(action as Practice)) {
+  } else if (action === "freeze") {
+    line = `I remembered ${tornNames.join("’s way and ")}’s way, watched just as often. I could not choose between them. I came home short.`;
+  } else if (!matching.includes(action as Practice)) {
     const source =
       teachers[action as Practice] === "Zehra"
         ? "Mother"
@@ -667,7 +651,7 @@ function resolve(g: Game) {
   const memory = remembered
     ? `${remembered} ${line} ${success ? "That was enough today." : "That was not enough today."}`
     : action === "freeze"
-      ? "I remembered Danyal waiting and another adult going ahead. I could not choose between the two. The families came home short."
+      ? line
       : "I had watched nobody work through this task. I did not know where to begin. We came home short.";
   g.outcome = { age: g.age, action, success, line, cost, movement, memory };
 }
@@ -732,7 +716,7 @@ function reserveHistory(g: Game): string {
     .filter((outcome) => !outcome.success)
     .map((outcome) => {
       const source = teachers[outcome.action as Practice];
-      return `At ${outcome.age}, ${source ? `Elif tried ${source === "Zehra" ? "Mother" : source}’s way` : "Elif had no workable plan"} and came home short.`;
+      return `At ${outcome.age}, ${source ? `Elif tried ${source === "Zehra" ? "Mother" : source}’s way` : outcome.action === "freeze" ? "Elif was torn between two ways she had watched equally often" : "Elif had no workable plan"} and came home short.`;
     })
     .join(" ");
 }
@@ -762,15 +746,6 @@ export function conditionsText(g: Game): string {
   const danyal = g.conditions.available
     ? "Danyal will be on duty when she goes alone."
     : "Danyal will be away when she goes alone.";
-  const conflict =
-    g.conditions.conflict &&
-    g.conditions.available &&
-    g.age !== 3 &&
-    g.age !== 14
-      ? g.age === 18
-        ? "One neighbour asks Elif to wait for Danyal; another asks her to start before the light fades."
-        : "One neighbour asks Elif to wait for Danyal; another asks her to go ahead now."
-      : "";
   const householdStore =
     g.age === 18 && g.conditions.seep && g.conditions.variant === 1
       ? "The household’s own water store is empty."
@@ -794,7 +769,6 @@ export function conditionsText(g: Game): string {
       ? "The last households need one stored household share while the carriers return. Without it, the last deliveries cannot arrive before night."
       : "A shortfall uses one emergency household share; ordinary daily supplies do not refill this store.",
     danyal,
-    conflict,
     carriers,
     householdStore,
     finalHint,
@@ -804,7 +778,7 @@ export function conditionsText(g: Game): string {
 }
 export interface Run {
   game: "child";
-  edition: 3;
+  edition: 4;
   engine: "3.2.0";
   seed: number;
   slice: boolean;
@@ -824,7 +798,7 @@ export function hash(g: unknown): string {
 export function exportRun(g: Game): Run {
   return {
     game: "child",
-    edition: 3,
+    edition: 4,
     engine: "3.2.0",
     seed: g.seed,
     slice: g.slice,
@@ -836,7 +810,7 @@ export function exportRun(g: Game): Run {
 export function replay(run: Run): Game {
   if (
     run.game !== "child" ||
-    run.edition !== 3 ||
+    run.edition !== 4 ||
     run.engine !== "3.2.0" ||
     !Number.isSafeInteger(run.seed) ||
     run.inputs.length > 1000
