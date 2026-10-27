@@ -89,3 +89,30 @@ HF still selects Elif's action from acquired methods. The host adds no learning,
 Each completed field afternoon now has visible progress toward the third-afternoon errand. Older Elif no longer plays with an empty jar or stands beside an adult's elbow. The yearbook uses her actual errand explanation with its remembered source, so an unfit practice cannot invent a successful act. Zero food is described as empty. The ending shows her remembered lesson and actual consequence before the full yearbook.
 
 Replay edition 3 identifies the new physical rules and state. Edition 2 exports require their original release; an incompatible local save uses the existing visible new-upbringing warning. Exact replay remains required within edition 3.
+
+## HF 4.x move: natural death and tracked seeds (2026-10-27)
+
+Child stays on **HF 3.2.0**. The owner accepted always-on natural death in HF 4.0: “Yes death from natural causes can give a story stakes. Keep that seed so we track what happens.” The 4.x move must retain natural death and track what happens when Maryam, authored at 68, dies before Elif turns eighteen. This acceptance does not migrate this release.
+
+**Remaining:** a runnable 4.x host migration, then an observed Maryam death seed and its presentation. No death seed was observed in this investigation. The supplied patch cannot run Child against published HF 4.0.0. This is a blocked discovery, not a finding that Maryam survives every seed.
+
+### Scratch reproduction and observed outcome
+
+Starting at Child `32bbf87`, apply `~/code/.lab-scratch/stale-patches/child-hf4-child.diff` in an isolated scratch worktree, then run `pnpm install --frozen-lockfile`. The patch changes only `package.json` and `pnpm-lock.yaml` from HF 3.2.0 to 4.0.0. Its SHA-256 is `a4cb5096a4bb7e9e6ba6174494c647828719c4b7dd42ba5ce86d92e3cb6989e5`.
+
+`node --experimental-strip-types --input-type=module -e 'import "./src/model.ts"'` fails before `createGame` can run: `SyntaxError: The requested module '@adam0white/human-framework' does not provide an export named 'DAYS_PER_YEAR'`. `pnpm typecheck` also rejects the removed `Community`, `createCommunity`, `liveCommunity`, method APIs and the old `createPerson` signature. HF 4.0.0 exposes the run API instead. No seed is reached, and no in-game death screen, lesson, yearbook or ending can be observed with this patch. No browser or panel run was performed. The scratch dependency changes were restored; they are not part of this change.
+
+| Tracked case                       | Seed                          | Engine      | Observed outcome                                                                                                                                               |
+| ---------------------------------- | ----------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Natural death before Elif is grown | Unobserved; discovery blocked | 4.0.0 patch | Model import fails before seed initialization. No death or presentation observed.                                                                              |
+| Current-version headless control   | 21                            | 3.2.0       | Full five-chapter run reaches eighteen after 180 monthly steps. Maryam is alive. Final inspection succeeds. Export and replay match the recorded control hash. |
+
+The control teaches `count`, `look`, `refuse`, `look`, `look` in successive chapters: three demonstrations, crisis, reveal and arrange with that same practice each time, including the final arrange that closes the yearbook. Seed 21 is a control, **not a death seed**.
+
+### Fixture required for the migration
+
+[`test/fixtures/hf4-natural-death.json`](../test/fixtures/hf4-natural-death.json) records the blocker, an empty observed-death list and the exact current-version control input log. It is a migration fixture contract, not an enabled 4.x test or a completed seed survey. Before accepting the 4.x move, the migration must fill that list from a headless run of the migrated Child host and turn the recorded case into a pinned regression test, with one headless control. No matrix or panel run is required here.
+
+For each tracked death, record the game seed, complete input log, exact HF version, person id, engine death evidence and time, Elif’s age at death, the first chapter showing the loss, visible text and available choices, the next crisis and yearbook/ending outcome, and a current-version export with exact replay. Preserve the authored starting ages. Confirm that engine natural mortality caused the death; do not manufacture it by changing health, age or RNG state. Distinguish the engine event from the next chapter presentation. Record whether the game still offers work with the deceased person or describes a fresh demonstration; those are migration issues to resolve, not observed outcomes today. Existing `nextChapter`, preparation choices and rendering have no death-specific presentation, but that static reading cannot establish what a future 4.x host will show.
+
+Target: revisit 2026-11-03 with the 4.x host migration. Done for seed discovery means an observed death entry with a pinned headless reproduction, one control and exact export replay; owner acceptance of feel remains separate.
