@@ -1,4 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+async function beginAtSix(page: Page) {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByText("Other ways to begin", { exact: true }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Begin at age six", exact: true })
+    .click();
+}
 
 test.beforeEach(async ({ page }) => {
   const notice = page.getByRole("complementary", { name: "Play recording" });
@@ -11,7 +21,7 @@ test("conditions precede every lesson, movement lasts four seconds, and the year
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/?lab=1&slice=6");
+  await beginAtSix(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
@@ -62,7 +72,7 @@ test("age-six preparation, movement, success and shortfall", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/?lab=1&slice=6");
+  await beginAtSix(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
@@ -89,7 +99,7 @@ test("age-six preparation, movement, success and shortfall", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.reload();
+  await beginAtSix(page);
   for (let i = 0; i < 3; i++)
     await page.getByRole("button", { name: /Go with Danyal/ }).click();
   await page.getByRole("button", { name: /Let her go/ }).click();
@@ -104,7 +114,7 @@ test("full upbringing reaches an ending, saves, and exports a replay", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/?lab=1");
+  await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
@@ -168,25 +178,38 @@ test("full upbringing reaches an ending, saves, and exports a replay", async ({
   await expect(page.getByText("I'm stopping", { exact: true })).toBeVisible();
   await expect(page.getByText("I'm confused", { exact: true })).toBeVisible();
 });
-test("Canvas fallback renders and ordinary play hides lab tools", async ({
+test("ordinary menu exposes public tools and keeps Canvas diagnostics collapsed", async ({
   page,
 }) => {
-  await page.goto("/?lab=1&canvas=1&slice=6");
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-renderer",
-    "canvas2d",
-  );
   await page.goto("/");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Export playtest" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
+  await expect(page.getByLabel("Replay playtest")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "New game", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Use Canvas renderer" }),
+  ).not.toBeVisible();
+  const privacy = await page
+    .getByRole("link", { name: "Lab privacy" })
+    .boundingBox();
+  const debug = await page.getByText("Debug", { exact: true }).boundingBox();
+  expect(Math.abs((privacy?.y ?? 0) - (debug?.y ?? 100))).toBeLessThan(20);
+  await page.getByText("Debug", { exact: true }).click();
+  await page.getByRole("button", { name: "Use Canvas renderer" }).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-renderer",
+    "canvas2d",
+  );
 });
 test("importing a movement resumes, and cached navigation keeps the canvas", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/?lab=1&slice=6");
+  await beginAtSix(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
@@ -215,7 +238,7 @@ test("importing a movement resumes, and cached navigation keeps the canvas", asy
 test("field work advances each afternoon and the third click sends her alone", async ({
   page,
 }) => {
-  await page.goto("/?lab=1&slice=6");
+  await beginAtSix(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
@@ -242,7 +265,7 @@ test("repeated unsuitable raising leaves a visible final loss after earlier shor
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/?lab=1");
+  await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
   const notice = page.getByRole("complementary", { name: "Play recording" });
   if (await notice.isVisible())
@@ -281,4 +304,21 @@ test("repeated unsuitable raising leaves a visible final loss after earlier shor
       exact: true,
     }),
   ).toBeVisible();
+});
+
+test("age-six day preserves the full upbringing and New game returns to age three", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Go with Maryam/ }).click();
+  const saved = await page.evaluate(() => localStorage.getItem("child-run"));
+  await beginAtSix(page);
+  await page.getByRole("button", { name: /Go with Yusuf/ }).click();
+  expect(await page.evaluate(() => localStorage.getItem("child-run"))).toBe(
+    saved,
+  );
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "New game", exact: true }).click();
+  await expect(page.locator(".topline")).toContainText("ELIF AT 3");
 });

@@ -18,18 +18,13 @@ import { createRenderer } from "./render";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw Error("Page is missing.");
-const labMode = new URLSearchParams(location.search).get("lab") === "1";
-const slice =
-  new URLSearchParams(location.search).get("slice") === "6" && labMode;
-let game = createGame(21, slice);
+let game = createGame(21);
 let saveWarning = "";
-if (!slice) {
-  try {
-    const saved = localStorage.getItem("child-run");
-    if (saved) game = replay(JSON.parse(saved));
-  } catch {
-    saveWarning = "The old page could not be read. A new upbringing has begun.";
-  }
+try {
+  const saved = localStorage.getItem("child-run");
+  if (saved) game = replay(JSON.parse(saved));
+} catch {
+  saveWarning = "The old page could not be read. A new upbringing has begun.";
 }
 const lab = initLab(() => exportRun(game));
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -51,10 +46,7 @@ choices.className = "choices";
 const status = document.createElement("p");
 status.className = "status";
 app.append(header, top, scene, story, choices, status);
-const renderer = await createRenderer(
-  scene,
-  labMode && new URLSearchParams(location.search).get("canvas") === "1",
-);
+let renderer = await createRenderer(scene, false);
 function button(title: string, detail: string, fn: () => void) {
   const b = document.createElement("button");
   b.type = "button";
@@ -67,7 +59,7 @@ function button(title: string, detail: string, fn: () => void) {
   choices.append(b);
 }
 function save() {
-  if (slice) return;
+  if (game.slice) return;
   try {
     const run = exportRun(game);
     localStorage.setItem("child-run", JSON.stringify(run));
@@ -165,7 +157,7 @@ function draw() {
     const c = document.createElement("p");
     c.textContent = game.outcome?.cost ?? "";
     story.append(c);
-    if (slice || game.chapter === 4)
+    if (game.slice || game.chapter === 4)
       button("Close this page", "Keep what happened in her yearbook.", () =>
         dispatch({ type: "arrange", practice: "count" }),
       );
@@ -185,13 +177,13 @@ function draw() {
     }
   } else {
     h.textContent = game.outcome?.success
-      ? slice
+      ? game.slice
         ? "The household has water."
         : "Every household has water."
-      : slice
+      : game.slice
         ? "Tonight they use the water stored at home."
         : "The last households go without.";
-    p.textContent = slice
+    p.textContent = game.slice
       ? "This day stays in her yearbook."
       : "Elif is the adult on duty now. What she did came from the work she watched.";
     if (game.outcome) {
@@ -209,7 +201,7 @@ function draw() {
     }
     story.append(journal);
     button("Begin again", "Another upbringing can teach another way.", () => {
-      game = createGame(game.seed + 1, slice);
+      game = createGame(game.seed + 1, game.slice);
       save();
       draw();
     });
@@ -257,13 +249,13 @@ menu.append(all);
 menuButton("New game", () => {
   if (confirm("Start a new upbringing?")) {
     clearTimeout(timer);
-    game = createGame(game.seed + 1, slice);
+    game = createGame(game.seed + 1);
     save();
     menu.close();
     draw();
   }
 });
-if (labMode) {
+{
   menuButton("Export playtest", () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(
@@ -294,6 +286,51 @@ if (labMode) {
   };
   menu.append(file);
 }
+const starts = document.createElement("details");
+const startsTitle = document.createElement("summary");
+startsTitle.textContent = "Other ways to begin";
+starts.append(startsTitle);
+const ageSix = document.createElement("button");
+ageSix.type = "button";
+ageSix.textContent = "Begin at age six";
+ageSix.onclick = () => {
+  if (
+    !confirm(
+      "Start a separate age-six day? Your saved upbringing stays on this device.",
+    )
+  )
+    return;
+  clearTimeout(timer);
+  game = createGame(21, true);
+  menu.close();
+  draw();
+};
+starts.append(ageSix);
+menu.append(starts);
+const diagnostics = document.createElement("div");
+diagnostics.className = "diagnostics";
+const privacy = document.createElement("a");
+privacy.href = "https://human.adamwhite.work/lab/privacy/";
+privacy.textContent = "Lab privacy";
+privacy.target = "_blank";
+privacy.rel = "noopener";
+const debug = document.createElement("details");
+const debugTitle = document.createElement("summary");
+debugTitle.textContent = "Debug";
+debug.append(debugTitle);
+const canvas = document.createElement("button");
+canvas.type = "button";
+canvas.textContent = "Use Canvas renderer";
+canvas.onclick = async () => {
+  renderer.destroy();
+  scene.replaceChildren();
+  renderer = await createRenderer(scene, true);
+  document.documentElement.dataset.renderer = renderer.kind;
+  draw();
+};
+debug.append(canvas);
+diagnostics.append(privacy, debug);
+menu.append(diagnostics);
 document.body.append(menu);
 header.querySelector("button")?.addEventListener("click", () => {
   clearTimeout(timer);
