@@ -180,8 +180,8 @@ export function createGame(seed = 21, slice = false): Game {
     outcome: null,
     history: [],
     lastLesson: slice
-      ? "You are Zehra. Elif watches the work you choose. Soon she will fetch water alone."
-      : "You are Zehra. Your daughter Elif copies the work she sees. Soon she must keep an evening jar for home.",
+      ? "You are Zehra. Elif watches the work you choose. Her father Yusuf checks paths, old Maryam counts shares, and Danyal keeps the village well."
+      : "You are Zehra. Your daughter Elif copies the work she sees. Her father Yusuf checks paths, old Maryam counts shares, and Danyal keeps the village well.",
     months: 0,
     rememberedLessons: {},
   };
@@ -236,9 +236,9 @@ export const lessonLines: Record<Practice, string[]> = {
     "Yusuf lifts a loose cover. Elif leans down to see the water beneath it.",
   ],
   wait: [
-    "Danyal waits for the keeper before opening a heavy gate. Elif sits beside him.",
+    "Danyal tells a neighbour to wait for him before opening the heavy gate. Elif sits and waits too.",
     "Elif puts down her jar where Danyal puts his. They wait for the well to clear.",
-    "Danyal asks who is on duty. Elif looks for the keeper before lifting the rope.",
+    "Danyal asks who is on duty before anyone lifts the rope. Elif waits for him before she touches it.",
   ],
   refuse: [
     "You keep the evening jar when a neighbour asks again. Elif places her hand across its lid.",
@@ -258,7 +258,7 @@ const lessonMemories: Record<Practice, string[]> = {
     "Yusuf lifted a cover to check the water beneath it.",
   ],
   wait: [
-    "Danyal waited for the keeper before opening the gate.",
+    "Danyal made us wait for him before opening the gate.",
     "Danyal put his jar down and waited for the well to clear.",
     "Danyal asked who was on duty before lifting the rope.",
   ],
@@ -289,7 +289,7 @@ export function step(g: Game, input: Input): void {
       const growing: Record<number, string[]> = {
         3: [
           "Elif reaches for the smallest cup.",
-          "She copies the adult’s hands.",
+          "She copies each movement she sees.",
           "She carries a jar against her chest.",
         ],
         6: [
@@ -298,17 +298,17 @@ export function step(g: Game, input: Input): void {
           "She takes the first steps home alone.",
         ],
         10: [
-          "Elif shows Tariq what she noticed.",
+          "Elif shows her half-brother Tariq what she noticed.",
           "She asks who will be on duty tomorrow.",
           "She makes room for another child beside her.",
         ],
         14: [
-          "Elif takes over while the adult rests.",
+          "Elif takes over the last part of the task.",
           "She works out what the waiting families need.",
           "She leaves the next household a clear place.",
         ],
         18: [
-          "Elif watches the queue while the adult works.",
+          "Elif watches the queue so the work can go on.",
           "She puts a spare jar beside the well.",
           "She checks who has yet to receive water.",
         ],
@@ -325,7 +325,7 @@ export function step(g: Game, input: Input): void {
       g.food += 2;
       g.repairs += 1;
       g.lastLesson =
-        g.age >= 14
+        g.age >= 10
           ? "You work in the field. Elif practises alone by the well. No adult shows her a new way today."
           : "You work in the field. Elif plays with an empty jar. No adult shows her a new way today.";
     }
@@ -556,7 +556,9 @@ function resolve(g: Game) {
           !g.conditions.seep ||
           (g.conditions.carriersFed && g.conditions.variant !== 1)
             ? "Everyone has water. Our household gives up its stored water."
-            : "Our stored water was too small. The last households go without.",
+            : g.conditions.carriersFed
+              ? "Our household’s own water store was empty. There was nothing to divide. The last households go without."
+              : "The carriers had missed meals. Dividing the water at the well left too many trips before night. The last households go without.",
           "Elif counts the jars and carries a share to every house.",
         ],
         look: [
@@ -715,11 +717,11 @@ function nextChapter(g: Game, practice: Practice) {
   g.phase = "prepare";
   g.preparations = 0;
   g.outcome = null;
-  g.lastLesson = `Through the years, Elif sometimes worked beside ${practice === "refuse" ? "you" : teachers[practice]}. One task stays with her. She is ${next} now. ${chapterGoals[next] ?? ""}`;
+  g.lastLesson = `Through the years, Elif kept working beside ${practice === "refuse" ? "you" : teachers[practice]}. One of ${practice === "refuse" ? "your" : `${teachers[practice]}’s`} tasks stays with her. She is ${next} now.`;
   refresh(g);
 }
 export const chapterGoals: Record<number, string> = {
-  3: "Keep an evening jar for the household.",
+  3: "Keep the household’s evening jar of water at home.",
   6: "Bring the household water home.",
   10: "Keep the household’s place in the queue.",
   14: "Divide the winter store so nobody goes without.",
@@ -757,7 +759,48 @@ export function conditionsText(g: Game): string {
             : g.conditions.seep
               ? "Water still flows from the upper spring. The well alone cannot fill every household’s jar."
               : "The upper spring is dry. The well can fill smaller shares if nobody takes a second jar.";
-  return `${physical} The emergency store has ${g.waterReserve} household ${g.waterReserve === 1 ? "share" : "shares"} left. ${g.age === 18 ? "The last households need one stored household share while the carriers return. Without it, the last deliveries cannot arrive before night." : "A shortfall uses one emergency household share; ordinary daily supplies do not refill this store."} ${g.age === 18 && g.conditions.seep && g.conditions.variant === 1 ? "The household water store is empty. Counting shares at the well alone leaves the last households without water; she needs to inspect the spring or work with Danyal." : ""} ${g.conditions.available ? "Danyal is on duty today." : "Danyal is away today."} ${g.conditions.conflict && g.conditions.available && g.age !== 3 && g.age !== 14 ? (g.age === 18 ? "One neighbour asks Elif to wait for Danyal; another asks her to start before the light fades." : "A neighbour asks Elif to wait for Danyal. The waiting households need her to start carrying water.") : ""} ${g.age === 18 ? (g.conditions.carriersFed ? "Before these lessons, food was set aside for the carriers. They can make extra trips if there is stored water to share." : "Before these lessons, the carriers missed meals. If the upper spring runs, counting alone leaves too many trips; she needs to inspect it or work with Danyal.") : ""}`;
+  const danyal = g.conditions.available
+    ? "Danyal will be on duty when she goes alone."
+    : "Danyal will be away when she goes alone.";
+  const conflict =
+    g.conditions.conflict &&
+    g.conditions.available &&
+    g.age !== 3 &&
+    g.age !== 14
+      ? g.age === 18
+        ? "One neighbour asks Elif to wait for Danyal; another asks her to start before the light fades."
+        : "One neighbour asks Elif to wait for Danyal; another asks her to go ahead now."
+      : "";
+  const householdStore =
+    g.age === 18 && g.conditions.seep && g.conditions.variant === 1
+      ? "The household’s own water store is empty."
+      : "";
+  const finalHint =
+    g.age === 18 &&
+    g.conditions.seep &&
+    (g.conditions.variant === 1 || !g.conditions.carriersFed)
+      ? "Counting shares at the well alone will not reach the last households; she needs to inspect the spring or work with Danyal."
+      : "";
+  const carriers =
+    g.age === 18
+      ? g.conditions.carriersFed
+        ? "In earlier years food was set aside for the carriers. They can make extra trips if there is stored water to share."
+        : "In earlier years the carriers missed meals, so they cannot make many extra trips."
+      : "";
+  return [
+    physical,
+    `The emergency store has ${g.waterReserve} household ${g.waterReserve === 1 ? "share" : "shares"} left.`,
+    g.age === 18
+      ? "The last households need one stored household share while the carriers return. Without it, the last deliveries cannot arrive before night."
+      : "A shortfall uses one emergency household share; ordinary daily supplies do not refill this store.",
+    danyal,
+    conflict,
+    carriers,
+    householdStore,
+    finalHint,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 export interface Run {
   game: "child";

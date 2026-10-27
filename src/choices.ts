@@ -10,7 +10,7 @@ const purposes: Record<number, Record<Practice, string>> = {
   3: {
     count: "keep an evening jar for home",
     look: "check the way to the neighbour’s house",
-    wait: "see when a grown-up waits for help",
+    wait: "learn when a grown-up’s help is worth waiting for",
     refuse: "keep the evening water when someone asks again",
   },
   6: {
@@ -40,9 +40,9 @@ const purposes: Record<number, Record<Practice, string>> = {
 };
 const methods: Record<Practice, string> = {
   count: "counting with Maryam",
-  look: "checking with Yusuf",
+  look: "looking first with Yusuf",
   wait: "waiting with Danyal",
-  refuse: "saying no with you",
+  refuse: "saying no with your help",
 };
 const costs: Record<Practice, string> = {
   count: "Maryam leaves meal work undone.",

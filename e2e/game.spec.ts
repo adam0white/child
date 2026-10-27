@@ -72,7 +72,9 @@ test("age-six preparation, movement, success and shortfall", async ({
   ).not.toBeVisible();
   for (let i = 0; i < 3; i++)
     await page.getByRole("button", { name: /Go with Yusuf/ }).click();
-  await expect(page.getByText(/Danyal is away today/)).toBeVisible();
+  await expect(
+    page.getByText(/Danyal will be away when she goes alone/),
+  ).toBeVisible();
   await page.getByRole("button", { name: /Let her go/ }).click();
   await expect(
     page.getByRole("heading", { name: "Watch Elif." }),
