@@ -8,13 +8,13 @@ Done means a complete small run with both winning and losing endings, exact repl
 
 Cues describe situations, never ages or chapter numbers. Demonstrations and crises share these exact keys and values throughout the run.
 
-| Cue          | Values          | Meaning                                                          |
-| ------------ | --------------- | ---------------------------------------------------------------- |
-| supply       | scarce          | The available water or food may run short.                       |
-| route        | uncertain       | A route or source needs inspection.                              |
-| keeper       | needed          | A task could use the trusted keeper.                             |
-| availability | present, absent | The keeper can or cannot help today.                             |
-| pressure     | repeated        | Someone asks again or pushes past a limit.                       |
+| Cue          | Values          | Meaning                                                                |
+| ------------ | --------------- | ---------------------------------------------------------------------- |
+| supply       | scarce          | The available water or food may run short.                             |
+| route        | uncertain       | A route or source needs inspection.                                    |
+| keeper       | needed          | A task could use the trusted keeper.                                   |
+| availability | present, absent | The keeper can or cannot help today.                                   |
+| pressure     | repeated        | Someone asks again or pushes past a limit.                             |
 | conflict     | (removed)       | Removed 2026-10-27: every held way now matches, so it changed nothing. |
 
 Four method actions: `count` (Maryam, count before sharing), `look` (Yusuf, go and look first), `wait` (Danyal, wait for the keeper), `refuse` (Zehra, say no and mean it). Each demonstration uses one stable condition: supply scarce, route uncertain, keeper needed, pressure repeated respectively. Situations can carry several cues. HF selects among the methods she holds. **Changed 2026-10-27 (coordinator ruling, owner direction bold over safe):** crisis cues are what a child can see, not which method will work. Water always looks scarce, the path always uncertain, and someone always asks again; only Danyal's presence is visible. So every held method matches, and HF evidence (how often and how recently she watched it) decides which one she uses. If the two strongest are tied, she freezes. The task that stayed with her between chapters counts as one watching. The old stop-or-go condition is removed: it no longer changed anything once every held way matched. The screen states the rule each chapter. Before this change a careless player who varied teachers won 178 of 192 seeded runs because the cues told Elif which held method fit; after it, 22 of 192 (rotating through every teacher: 32 of 32 before, 0 after), while a careful reader wins 32 of 32 and a careful player with one stray afternoon per chapter wins 27 of 32.
