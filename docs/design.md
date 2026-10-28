@@ -120,7 +120,7 @@ Target: revisit 2026-11-03 with the 4.x host migration. Done for seed discovery 
 
 ## HF 4.4.0 port gate (2026-10-27)
 
-**Remaining: G7, cheaper larger daily step.** Child remains on released HF 3.2.0 and client 0.4.15. Published HF 4.4.0 supplies the run and method routes, but its measured daily workload does not meet the chapter latency budget. The matching existing row is **G7** in `human-framework/docs/hf4-game-needs.md` (Child section). Review after that row's 2026-11-17 scheduler delivery; rerun this workload by **2026-11-24**. This is a framework dependency, not an owner question. No HF source changed.
+**Historical gate; the 2026-10-28 candidate measurement below supersedes this schedule.** Child remains on released HF 3.2.0 and client 0.4.15. Published HF 4.4.0 supplies the run and method routes, but its measured daily workload does not meet the chapter latency budget. The matching existing row is **G7** in `human-framework/docs/hf4-game-needs.md` (Child section). Review after that row's 2026-11-17 scheduler delivery; rerun this workload by **2026-11-24**. This is a framework dependency, not an owner question. No HF source changed.
 
 The maintainer sets a **2,000 ms desktop computation budget per three-year chapter gap**, before UI rendering, on this Apple Silicon machine with Node 26.12.0. A player makes one companion choice and should see the next chapter promptly. Moving the same work to a Worker does not shorten that wait. A phone budget and the complete six-person upbringing still need measurement after G7 closes.
 
@@ -142,3 +142,31 @@ Reproduction evidence is retained at `~/code/.lab-scratch/codex/child-hf4-proof/
 The separate 4.4.0 public protocol control passed pending-request restore, active-work JSON restore and continuation, equal complete archives, read-only inspection/preview, distinct work/rest body outcomes and exact replay. Its files and results are at `~/code/.lab-scratch/codex/child-hf4-proof/control/`. Its work hash is `4cebb9f43752c647e7c7dcbca1902d0181bbdae96663030a726eb59eeb027259`. This closes no whole-game delivery gate: Child's playtest export still runs on 3.2.0. The future bridge must retain complete HF and host replay evidence, refuse old saves with a start-fresh message, and track natural Maryam death as specified above. Client 0.5.2 is available as the immutable `lab-client-v0.5.2` GitHub release artifact; the engine-blocked port does not adopt it separately.
 
 Public gameplay is already implemented by Child PR #2: `src/main.ts` has no query-string reads. Export/replay and age-six start are public menu controls; the Canvas diagnostic sits in one collapsed Debug item beside Lab privacy. The Chromium phone suite passed all eight tests without query-string gates. The released five-chapter seed-21 headless control finishes successfully after 180 months and replays exactly at edition 4, hash `c0e90d29`. Neither result is an HF4 Child port receipt.
+
+
+## HF 4.6.0 candidate gate (2026-10-28)
+
+**Remaining: a daily step and restore that meet Child's latency budgets.** The local G6/G7 candidate still fails the chapter budget. Keep HF 3.2.0 and client 0.4.15. Recheck G7 and rerun this gate by **2026-11-24**, or sooner when a candidate claims to meet these budgets. This is an existing framework dependency, not an owner question. Under the owner's failed-cost option, the full port, published dependency switch and deployment remain deferred. Publication alone does not close this gate.
+
+The desktop step budget remains **2,000 ms for the six-person three-year chapter gap**, or **111.11 ms per nominal in-game year per person** (`2000 / 3 / 6`). Set a **2,000 ms restore budget**, measured from parsed archive to restored HF run, at every chapter through age eighteen. Parsing, asset loading and rendering must also fit the existing five-second phone-ready gate. These are acceptance budgets, not measured phone performance. The normalized rate describes the measured three-year gate; later four-year gaps and full-history restore still need direct acceptance measurements.
+
+Candidate: HF PR #46, branch `g6g7`, commit `16f14ccef298eba9a9e24b6811a36927366cb0b9`. A separate managed HF worktree ran `pnpm install --frozen-lockfile`, then `pnpm --filter @adam0white/human-framework pack --pack-destination ...`. No HF source changed or was pushed. The resulting tarball labels itself 4.6.0; this local pack is not proof of npm publication. Its SHA256 is `5e7559eb9891f2b5458476209d880cb40cf8d107bed360cf28f34fb8c9a8afeb`. Engine build: `9ef0d0acfecfd52a54ddfb415f329beb7db10503f55c5f1c50ec6efeb46bccd1`.
+
+The public-API workload uses seed 21, Child's six names, sexes, starting ages (Elif 3, Zehra 31, Yusuf 34, Maryam 68, Danyal 52, Tariq 16), and authored traits. Remaining state comes from the candidate's minimal example. It advances 36 monthly calls with daily fidelity, rounding monthly targets to whole days as Child does: 1,096 days for a nominal three-year gap. Four daily food/water receipts per person supply 0.5 of each at hours 1, 7, 13 and 19. There are 26,304 admitted inputs. No clock, body or faculty is overwritten during stepping. The timed step excludes input construction, export, JSON serialization and UI rendering.
+
+| Measured reduced workload          |     Budget |          Result |
+| ---------------------------------- | ---------: | --------------: |
+| Six people, nominal three-year gap |   2,000 ms |    130,737.6 ms |
+| Step, per nominal year per person  |  111.11 ms |     7,263.20 ms |
+| JSON archive restore after the gap |   2,000 ms |    135,802.3 ms |
+| Exact replay of that archive       | diagnostic |    250,420.6 ms |
+| JSON export and serialization      | diagnostic |        340.3 ms |
+| Serialized archive                 | diagnostic | 7,584,651 bytes |
+
+The normalization divides by 18 nominal person-years; the rounded duration is 3.00068 calendar years. All six people ended alive with health 1. This is a reduced cast workload, not a runnable Child port or a mathematical lower bound for every possible schedule. It omits witnessed lessons, relationships and explicit sleep activities; sleep debt reached 48 hours. No fifteen-year upbringing, full-history reload, phone cost, fine/daily multi-year agreement or Maryam death seed was measured. These results do not establish care adequacy or natural-death timing.
+
+Restore used a JSON-parsed archive in the same Node process, not a new browser or process. Its exported archive matched the original JSON exactly. Replay returned `verified:true` and the same full hash. Full archive hash: `e331085de222b981bc7864159ab08d2b29b9999997b29356ed9492cf90a1dfaf`. Format 5 retains 36 transactions with all 26,304 inputs.
+
+This shared Apple M4 used Node 26.12.0 and pnpm 12.14.0 with `/opt/homebrew/bin` first on PATH. During stepping the one-minute machine load ranged from 13.48 to 20.60. The final one-minute load after replay was 44.89. Timings are one loaded-machine run, not a portable throughput guarantee. The step result exceeds the chapter budget by **65.37 times**. A worker would move computation off the UI thread without meeting that latency budget. Do not bypass the gate with a second aging loop, disabled faculties, discarded learning or host cognition.
+
+Reproduce from `~/code/.lab-scratch/codex/child-g7-proof/`: `pnpm install --frozen-lockfile`, then `node workload.ts > workload.jsonl 2> workload.stderr`. That directory retains the local tarball, its manifest and frozen lockfile, candidate example host, workload source, raw progress, final JSON archive and results. These are local engineering evidence, not shipped assets. The existing replay-hash tests remain unchanged. The released HF 3.2.0 game passed all 24 tests and the Chromium phone full-upbringing/save/export control; those checks do not validate an HF4 port.
