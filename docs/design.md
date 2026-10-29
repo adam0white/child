@@ -146,6 +146,8 @@ Public gameplay is already implemented by Child PR #2: `src/main.ts` has no quer
 
 ## HF 4.6.0 candidate gate (2026-10-28)
 
+Historical candidate measurement. The published 4.9.0 retry below is the current gate result.
+
 **Remaining: a daily step and restore that meet Child's latency budgets.** The local G6/G7 candidate still fails the chapter budget. Keep HF 3.2.0 and client 0.4.15. Recheck G7 and rerun this gate by **2026-11-24**, or sooner when a candidate claims to meet these budgets. This is an existing framework dependency, not an owner question. Under the owner's failed-cost option, the full port, published dependency switch and deployment remain deferred. Publication alone does not close this gate.
 
 The desktop step budget remains **2,000 ms for the six-person three-year chapter gap**, or **111.11 ms per nominal in-game year per person** (`2000 / 3 / 6`). Set a **2,000 ms restore budget**, measured from parsed archive to restored HF run, at every chapter through age eighteen. Parsing, asset loading and rendering must also fit the existing five-second phone-ready gate. These are acceptance budgets, not measured phone performance. The normalized rate describes the measured three-year gate; later four-year gaps and full-history restore still need direct acceptance measurements.
@@ -170,3 +172,27 @@ Restore used a JSON-parsed archive in the same Node process, not a new browser o
 This shared Apple M4 used Node 26.12.0 and pnpm 12.14.0 with `/opt/homebrew/bin` first on PATH. During stepping the one-minute machine load ranged from 13.48 to 20.60. The final one-minute load after replay was 44.89. Timings are one loaded-machine run, not a portable throughput guarantee. The step result exceeds the chapter budget by **65.37 times**. A worker would move computation off the UI thread without meeting that latency budget. Do not bypass the gate with a second aging loop, disabled faculties, discarded learning or host cognition.
 
 Reproduce from `~/code/.lab-scratch/codex/child-g7-proof/`: `pnpm install --frozen-lockfile`, then `node workload.ts > workload.jsonl 2> workload.stderr`. That directory retains the local tarball, its manifest and frozen lockfile, candidate example host, workload source, raw progress, final JSON archive and results. These are local engineering evidence, not shipped assets. The existing replay-hash tests remain unchanged. The released HF 3.2.0 game passed all 24 tests and the Chromium phone full-upbringing/save/export control; those checks do not validate an HF4 port.
+
+
+## Published HF 4.9.0 gate (2026-10-29)
+
+**Remaining: stepping and replay-based restore within the existing 2,000 ms budgets.** Published HF 4.9.0 still fails both reduced chapter gates. The released game stays on HF 3.2.0 and client 0.4.15. Snapshot-only recovery is a separate owner proposal; the current restore contract replays accepted history. Recheck at the existing **2026-11-24** workload checkpoint, or when an HF candidate claims these budgets. No full HF4 port or deployment is established by this measurement.
+
+The opt-in probe is now retained in this repo. `hf4` is an exact development alias for published `@adam0white/human-framework@4.9.0`; the app's runtime dependency remains 3.2.0. After `pnpm install --frozen-lockfile`, run `pnpm run bench:hf4 --mode full`. Add `--archive /absolute/path/archive.json` to retain the native file. The default quick mode covers one day and is not the three-year acceptance run. The slow full probe is outside the default test suite.
+
+It preserves the reduced workload above: seed 21, the same six identities, ages and authored traits, 36 monthly daily-fidelity calls, 1,096 days and 26,304 food/water receipts. Other state uses the minimal HF4 host. Lessons, relationships and explicit sleep activities are absent. This is not a full upbringing, phone measurement or mathematical lower bound for every schedule.
+
+| Published reduced workload      |     Budget | Observed result |
+| ------------------------------- | ---------: | --------------: |
+| Six-person chapter stepping     |   2,000 ms |    58,884.70 ms |
+| Step per actual year/person     | diagnostic |     3,270.63 ms |
+| Restore from parsed JSON, exact |   2,000 ms |    64,871.45 ms |
+| Full replay, exact              | diagnostic |    67,658.64 ms |
+| Export and JSON serialization   | diagnostic |       379.99 ms |
+| Native archive                  | diagnostic | 4,282,497 bytes |
+
+The rate divides by `6 * (1096 / 365.25)` person-years; the total step and restore budgets apply directly. Restore exported the same archive bytes. Replay verified the complete full hash `38a44bdef07b6663457a979e9ef4dd0d4caf20dbe5098236c54e57eb8f0ae822`. Format 7 retains all accepted transactions and uses the deliberate 4.x narration/archive change. Old build hashes are not current acceptance values.
+
+This shared Apple M4 used Node 26.12.0 and pnpm 12.14.0. One-minute load was 2.68 at the start, 3.21 after stepping and 3.53 after replay. These are one observed run's timings, not an isolated speed ratio against the earlier candidate. Input construction, export and rendering are outside step time. Restore runs in the same process from a parsed archive.
+
+The registry tar is 475,382 bytes, SHA256 `97485db053f24639003d4bc5e2e0958d7550a809a8affeeae924c8c765aece80`. Its integrity matches npm metadata. Provenance binds it to source `97127f60e48465fc73ffc6b469844255516e629e`, tag `v4.9.0` and publish workflow run 40830473010. Engine build: `2be1b4e3f21f68556da0b114840d876a31e2ba264e1980980b046708d67d49d1`. Raw progress, archive and artifact verification remain under `~/code/.lab-scratch/codex/g7-perf-proof/published-490/`. The app's existing replay-hash tests remain unchanged.
