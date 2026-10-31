@@ -1,7 +1,7 @@
 import { claimLabNotice, createLab } from "@adam0white/lab-client";
 
 export interface GameLab {
-  feedback(): void;
+  feedback(onClose: () => void): boolean;
   recording(): boolean;
   setRecording(on: boolean): void;
   event(kind: string, detail: string): void;
@@ -16,6 +16,7 @@ export function initLab(getRun: () => unknown): GameLab {
   const stopTracking = lab.trackRun(getRun);
   let destroyed = false;
   let notice: HTMLElement | null = null;
+  let feedbackObserver: MutationObserver | null = null;
 
   void claimLabNotice()
     .catch(() => false)
@@ -58,11 +59,34 @@ export function initLab(getRun: () => unknown): GameLab {
     });
 
   return {
-    feedback() {
-      if (destroyed) return;
-      // The SDK keeps failed notes, and shows Sent only after a stored HTTP 200.
-      // Selecting either feedback choice sends nothing before Submit.
-      lab.openSendDialog({ getRun, feedbackChoices: true });
+    feedback(onClose) {
+      if (destroyed) return false;
+      if (feedbackObserver) return true;
+      // SDK 0.4.15 has no close callback. Its private veil is appended to body
+      // and removed on dismissal; keep this dependency in the adapter.
+      const connectedVeils = () =>
+        [...document.querySelectorAll<HTMLElement>(".hflab-veil")].filter(
+          (veil) => veil.isConnected,
+        );
+      if (connectedVeils().length === 0) {
+        try {
+          lab.openSendDialog({ getRun, feedbackChoices: true });
+        } catch {
+          // The SDK may have appended its veil before throwing.
+        }
+      }
+      if (connectedVeils().length === 0) return false;
+      feedbackObserver = new MutationObserver(() => {
+        if (!feedbackObserver || connectedVeils().length > 0) return;
+        feedbackObserver.disconnect();
+        feedbackObserver = null;
+        if (!destroyed) onClose();
+      });
+      feedbackObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+      return true;
     },
     recording: () => lab.telemetryOn,
     setRecording(on) {
@@ -80,6 +104,8 @@ export function initLab(getRun: () => unknown): GameLab {
     },
     destroy() {
       destroyed = true;
+      feedbackObserver?.disconnect();
+      feedbackObserver = null;
       stopTracking();
       notice?.remove();
     },

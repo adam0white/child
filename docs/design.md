@@ -55,6 +55,9 @@ The coordinator resolves the v1 roster objection. Drop the witnessed-practice op
 
 ## Deferred
 
+- 2026-11-10: Consider F-2866, F-2868, F-2869, F-2870 and F-2873: neighbour context, afternoon variation, more interaction with Elif and a clearer failed attempt. These are fictional LIGHT panel preferences, not proven causes or approved features. Preserve fair failure.
+- 2026-11-03: F-2861, F-2862 and F-2865 have candidate wording explaining retained learning and the separate emergency store; player acceptance remains pending. A candidate host handoff addresses the five Feedback asks (F-2863, F-2864, F-2867, F-2871 and F-2872); lab verification and player acceptance remain pending. The fixture supports a modal-layer mechanism but does not establish each reported block’s cause. The handoff watches SDK 0.4.15’s private veil removal because the SDK exposes no close callback.
+
 - 2026-11-03: owner and lab-panel taste review, then retest under the coordinator's process.
 - 2026-11-03: cross-game continuation admission, pending a separate receiving-stage design; this run uses its own authored cast branch.
 - 2026-11-03: custom cloth shader and sound, only if players request them; protect phone ready time.

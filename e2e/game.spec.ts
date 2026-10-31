@@ -1,3 +1,4 @@
+import { gunzipSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
 
 async function beginAtSix(page: Page) {
@@ -321,4 +322,78 @@ test("age-six day preserves the full upbringing and New game returns to age thre
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "New game", exact: true }).click();
   await expect(page.locator(".topline")).toContainText("ELIF AT 3");
+});
+
+test("Feedback controls work while movement stays paused until Resume", async ({
+  page,
+}) => {
+  const feedbackAttempts: string[] = [];
+  await page.route("**/*", async (route) => {
+    const request = route.request();
+    if (["GET", "HEAD", "OPTIONS"].includes(request.method())) {
+      await route.continue();
+      return;
+    }
+    // Block every write, including automatic recording. Never fabricate a receipt.
+    const url = new URL(request.url());
+    if (url.pathname.endsWith("/run")) feedbackAttempts.push("run upload");
+    if (url.pathname.endsWith("/linked")) {
+      try {
+        const body = request.postDataBuffer();
+        const envelope = JSON.parse(
+          gunzipSync(body ?? Buffer.alloc(0)).toString(),
+        );
+        if (envelope.kind === "note" || envelope.kind === "run")
+          feedbackAttempts.push(`linked ${envelope.kind}`);
+      } catch {
+        feedbackAttempts.push("unreadable linked write");
+      }
+    }
+    await route.abort();
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/?labRunSource=agent");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
+  for (let i = 0; i < 3; i++)
+    await page.getByRole("button", { name: /Go with Yusuf/ }).click();
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-01-01T00:00:01Z"));
+  await page.getByRole("button", { name: /Let her go/ }).click();
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Feedback", exact: true }).click();
+  const feedback = page.getByRole("dialog", { name: "Feedback" });
+  for (const name of ["I'm stopping", "I'm confused"]) {
+    const choice = feedback.getByRole("button", { name, exact: true });
+    await expect(choice).toHaveAttribute("aria-pressed", "false");
+    await choice.click();
+    await expect(choice).toHaveAttribute("aria-pressed", "true");
+  }
+  await page.clock.runFor(5000);
+  await expect(
+    page.getByRole("heading", { name: "Watch Elif." }),
+  ).toBeVisible();
+  await feedback.getByRole("button", { name: "Not now", exact: true }).click();
+  await expect(feedback).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Take a moment." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Feedback", exact: true }).click();
+  await expect(feedback).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(feedback).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Take a moment." }),
+  ).toBeVisible();
+  await page.clock.runFor(5000);
+  await expect(
+    page.getByRole("heading", { name: "Watch Elif." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Resume", exact: true }).click();
+  await page.clock.runFor(4000);
+  await expect(
+    page.getByRole("heading", {
+      name: /She did what was needed\.|She came home short\./,
+    }),
+  ).toBeVisible();
+  expect(feedbackAttempts).toEqual([]);
 });
