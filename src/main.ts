@@ -28,6 +28,7 @@ try {
 }
 const lab = initLab(() => exportRun(game));
 let timer: ReturnType<typeof setTimeout> | undefined;
+let feedbackOpen = false;
 const header = document.createElement("header");
 header.className = "masthead";
 header.innerHTML =
@@ -74,7 +75,7 @@ function scheduleReveal() {
   clearTimeout(timer);
   timer = setTimeout(
     () => {
-      if (!menu.open) dispatch({ type: "reveal" });
+      if (!menu.open && !feedbackOpen) dispatch({ type: "reveal" });
     },
     matchMedia("(prefers-reduced-motion: reduce)").matches ? 2000 : 4000,
   );
@@ -121,7 +122,7 @@ function draw() {
     progress.className = "preparation-progress";
     progress.textContent =
       game.preparations === 0
-        ? "Choose work for three afternoons. Then she goes alone. She uses the way she has watched most often, counting the task that stayed with her from the years before. If two ways are tied, she cannot choose between them."
+        ? "Choose work for three afternoons. Then she goes alone, using the way she watched most often. A task kept from earlier years counts too. For example, one remembered counting task and two new checking tasks give her more practice checking. If two ways are tied, she cannot choose between them."
         : preparationProgress(game.preparations);
     story.append(progress);
     if (game.preparations === 0) {
@@ -219,13 +220,21 @@ function menuButton(label: string, fn: () => void) {
   b.textContent = label;
   b.onclick = fn;
   menu.append(b);
+  return b;
 }
 menuButton("Resume", () => {
   menu.close();
   if (game.phase === "movement") scheduleReveal();
 });
-menuButton("Feedback", () => {
-  lab.feedback();
+const feedbackButton = menuButton("Feedback", () => {
+  feedbackOpen = true;
+  menu.close();
+  const restoreMenu = () => {
+    feedbackOpen = false;
+    if (!menu.open) menu.showModal();
+    feedbackButton.focus();
+  };
+  if (!lab.feedback(restoreMenu)) restoreMenu();
 });
 const recording = document.createElement("button");
 recording.type = "button";
@@ -333,6 +342,7 @@ diagnostics.append(privacy, debug);
 menu.append(diagnostics);
 document.body.append(menu);
 header.querySelector("button")?.addEventListener("click", () => {
+  if (feedbackOpen || menu.open) return;
   clearTimeout(timer);
   menu.showModal();
 });
@@ -355,6 +365,7 @@ window.addEventListener("pagehide", (event) => {
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) {
     draw();
-    if (game.phase === "movement" && !menu.open) scheduleReveal();
+    if (game.phase === "movement" && !menu.open && !feedbackOpen)
+      scheduleReveal();
   }
 });

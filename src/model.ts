@@ -748,7 +748,7 @@ export function conditionsText(g: Game): string {
     : "Danyal will be away when she goes alone.";
   const householdStore =
     g.age === 18 && g.conditions.seep && g.conditions.variant === 1
-      ? "The household’s own water store is empty."
+      ? "The household’s own water store is empty. It is separate from the emergency store."
       : "";
   const finalHint =
     g.age === 18 &&
@@ -767,7 +767,7 @@ export function conditionsText(g: Game): string {
     `The emergency store has ${g.waterReserve} household ${g.waterReserve === 1 ? "share" : "shares"} left.`,
     g.age === 18
       ? "The last households need one stored household share while the carriers return. Without it, the last deliveries cannot arrive before night."
-      : "A shortfall uses one emergency household share; ordinary daily supplies do not refill this store.",
+      : "A shortfall spends one emergency household share if any remain. Nothing refills this emergency store.",
     danyal,
     carriers,
     householdStore,
