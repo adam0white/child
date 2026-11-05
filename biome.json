@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.5/schema.json",
   "files": {
     "includes": ["**", "!dist", "!pnpm-lock.yaml"]
   },
@@ -23,5 +23,13 @@
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["docs/**"],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }

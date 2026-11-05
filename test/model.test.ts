@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import * as NativeHF from "@adam0white/human-framework";
+import { readRunHistory } from "@adam0white/human-framework";
+import { describe, expect, it, vi } from "vitest";
+import * as HF from "../src/hf";
 import {
   createGame,
   exportRun,
@@ -7,6 +10,13 @@ import {
   replay,
   step,
 } from "../src/model";
+
+// Keep the real published exports while giving Vitest a configurable namespace.
+// Native step spies below still call the captured original implementation.
+vi.mock(import("@adam0white/human-framework"), async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual };
+});
 
 function act(practice: Practice, seed = 21) {
   const g = createGame(seed, true);
@@ -33,25 +43,143 @@ describe("age six learned actions", () => {
     expect(count.outcome?.cost).not.toBe(look.outcome?.cost);
   });
   it("ways watched equally often leave her torn; the most watched way wins", () => {
+    function crisis(g: ReturnType<typeof createGame>, decisions: number) {
+      const serve = HF.serve;
+      const publish = HF.publish;
+      const nativeStep = NativeHF.step;
+      let postCue: string | undefined;
+      let beforePublication: string | undefined;
+      const choiceEvents: ReturnType<typeof HF.serve>[number][] = [];
+      const nativeStepSpy = vi
+        .spyOn(NativeHF, "step")
+        .mockImplementation((...args) => {
+          const result = nativeStep(...args);
+          if (
+            args[0] === g.run &&
+            result.ok &&
+            postCue !== undefined &&
+            beforePublication === undefined
+          )
+            choiceEvents.push(
+              ...result.value.events.filter(
+                (event) =>
+                  event.person === "elif" && event.data.kind === "decision",
+              ),
+            );
+          return result;
+        });
+      const serveSpy = vi.spyOn(HF, "serve").mockImplementation((...args) => {
+        const events = serve(...args);
+        if (args[0] === g.run) {
+          if (args[2]?.some((entry) => entry.kind === "method.cues"))
+            postCue = JSON.stringify(HF.nativeExport(g.run));
+        }
+        return events;
+      });
+      const publishSpy = vi
+        .spyOn(HF, "publish")
+        .mockImplementation((...args) => {
+          if (args[0] === g.run)
+            beforePublication = JSON.stringify(HF.nativeExport(g.run));
+          return publish(...args);
+        });
+      const decideSpy = vi.spyOn(HF, "decide");
+      const query = HF.conditionalMethodEvidence;
+      let queryBefore: string | undefined;
+      let queryAfter: string | undefined;
+      const querySpy = vi
+        .spyOn(HF, "conditionalMethodEvidence")
+        .mockImplementation((...args) => {
+          queryBefore = JSON.stringify(HF.nativeExport(args[0]));
+          const result = query(...args);
+          queryAfter = JSON.stringify(HF.nativeExport(args[0]));
+          return result;
+        });
+      try {
+        step(g, { type: "crisis" });
+        // These assertions run even when the original candidate chooses instead
+        // of freezing. Other people's native activity is not Elif's choice.
+        expect(
+          querySpy.mock.calls.filter(([run]) => run === g.run),
+        ).toHaveLength(1);
+        const conditional = querySpy.mock.results[0];
+        if (conditional?.type !== "return")
+          throw Error("Conditional query did not return evidence.");
+        expect(conditional.value.hypothetical).toBe(true);
+        const evidence = conditional.value.evidence;
+        const support = (action: string) =>
+          evidence.find((entry) => entry.action === action)?.evidence.support;
+        if (evidence.some((entry) => entry.action === "count")) {
+          expect(evidence.every((entry) => entry.evidence.support > 0)).toBe(
+            true,
+          );
+          const supports = evidence.map((entry) => entry.evidence.support);
+          expect(Math.max(...supports) - Math.min(...supports)).toBeLessThan(
+            0.01,
+          );
+        } else if (evidence.some((entry) => entry.action === "refuse")) {
+          expect(support("look")).toBeGreaterThan(0);
+          expect(
+            (support("refuse") ?? 0) - (support("look") ?? 0),
+          ).toBeGreaterThanOrEqual(0.01);
+        } else {
+          expect(evidence.map((entry) => entry.action)).toEqual(["try"]);
+        }
+        expect
+          .soft(decideSpy.mock.calls.filter(([run]) => run === g.run))
+          .toHaveLength(decisions);
+        const requests = readRunHistory(HF.nativeExport(g.run))
+          .flatMap((tx) => tx.inputs)
+          .filter(
+            (entry) =>
+              entry.kind === "decision.requested" &&
+              entry.payload.person === "elif" &&
+              entry.payload.reason === "crisis",
+          );
+        expect.soft(requests).toHaveLength(decisions);
+        expect.soft(choiceEvents).toHaveLength(decisions);
+        expect.soft(postCue).toBeDefined();
+        expect.soft(beforePublication).toBeDefined();
+        if (decisions === 0) {
+          // Exact full archive equality includes every RNG stream, offers,
+          // queue, clock, trace and decision counter, before host publication.
+          expect
+            .soft(
+              queryBefore === queryAfter,
+              "the hypothetical query must preserve the complete live native archive",
+            )
+            .toBe(true);
+        }
+        expect
+          .soft(Object.keys(HF.current(g.run).people).sort())
+          .toEqual([...HF.cast].sort());
+      } finally {
+        querySpy.mockRestore();
+        decideSpy.mockRestore();
+        publishSpy.mockRestore();
+        serveSpy.mockRestore();
+        nativeStepSpy.mockRestore();
+      }
+    }
     const g = createGame(21, true);
     step(g, { type: "teach", practice: "count" });
     step(g, { type: "teach", practice: "look" });
     step(g, { type: "teach", practice: "refuse" });
-    step(g, { type: "crisis" });
-    expect(g.outcome?.action).toBe("freeze");
-    expect(g.outcome?.success).toBe(false);
-    expect(g.outcome?.line).toContain("Maryam’s way and Yusuf’s way");
-    expect(hash(replay(exportRun(g)))).toBe(hash(g));
+    crisis(g, 0);
+    expect.soft(g.outcome?.action).toBe("freeze");
+    expect.soft(g.outcome?.success).toBe(false);
+    expect.soft(g.outcome?.line).toContain("Maryam’s way and Yusuf’s way");
+    expect.soft(hash(replay(exportRun(g)))).toBe(hash(g));
     const leaning = createGame(21, true);
     step(leaning, { type: "teach", practice: "look" });
     step(leaning, { type: "teach", practice: "refuse" });
     step(leaning, { type: "teach", practice: "refuse" });
-    step(leaning, { type: "crisis" });
-    expect(leaning.outcome?.action).toBe("refuse");
+    crisis(leaning, 1);
+    expect.soft(leaning.outcome?.action).toBe("refuse");
     const unprepared = createGame(21, true);
     for (let i = 0; i < 3; i++) step(unprepared, { type: "work" });
-    step(unprepared, { type: "crisis" });
-    expect(unprepared.outcome?.action).toBe("try");
+    crisis(unprepared, 1);
+    expect.soft(unprepared.outcome?.action).toBe("try");
   });
   it("keeps the outcome hidden until movement finishes, then exports an exact replay", () => {
     const g = act("look");
@@ -63,7 +191,7 @@ describe("age six learned actions", () => {
   });
 });
 describe("complete upbringing", () => {
-  it("finishes five chapters and carries lessons through monthly community steps", () => {
+  it("finishes five episodes and records the intervening fictional months", () => {
     const g = createGame(21, false);
     expect(g.age).toBe(3);
     for (let c = 0; c < 5; c++) {
@@ -78,7 +206,9 @@ describe("complete upbringing", () => {
     expect(g.history).toHaveLength(5);
     expect(g.outcome?.success).toBe(true);
     expect(g.months).toBe(180);
-    expect(g.child.now).toBeGreaterThan(14 * 365 * 1440);
+    expect(g.child.now).toBeLessThan(HF.DAY);
+    expect(g.completedEpisodes).toHaveLength(4);
+    expect(g.child.life.bornAt).toBe(-18 * HF.YEAR);
     expect(hash(replay(exportRun(g)))).toBe(hash(g));
   });
   it("can lose the final day after relying on an absent keeper", () => {
@@ -290,4 +420,165 @@ it("a failed early errand cannot spend emergency water after the store is empty"
   expect(g.outcome?.success).toBe(false);
   expect(g.outcome?.cost).toContain("no stored water left");
   expect(g.outcome?.cost).not.toContain("uses its stored water");
+});
+
+it("AUTHORED LIFECYCLE PUBLICATION CONTROL — NOT NATURAL MORTALITY", () => {
+  // Externally authored native input during one ordinary model action. This
+  // proves neither natural mortality nor ordinary model.replay acceptance.
+  const g = createGame(21, true);
+  const liveRun = g.run;
+  const nativeStep = NativeHF.step;
+  type NativeEvent = ReturnType<typeof HF.serve>[number];
+  type RetainedLoss = (typeof g.losses)[number] & {
+    evidence?: readonly NativeEvent[];
+  };
+  const deathInputId = "authored-publication:Maryam:death";
+  let injected = false;
+  let ingressAt: number | undefined;
+  let deathEvents: NativeEvent[] = [];
+  let beforeNextSuccessfulStep: readonly RetainedLoss[] | undefined;
+  const isMaryamDeath = (event: NativeEvent) =>
+    (event.person === "Maryam" &&
+      event.data.kind === "body-change" &&
+      event.data.change.kind === "died") ||
+    (event.data.kind === "lifecycle" &&
+      event.data.receipt.type === "death" &&
+      event.data.receipt.person.kind === "actor" &&
+      event.data.receipt.person.id === "Maryam");
+  const nativeStepSpy = vi
+    .spyOn(NativeHF, "step")
+    .mockImplementation((run, batch) => {
+      let submitted = batch;
+      const publication = batch.inputs.find(
+        (entry) => entry.kind === "world.changed" && entry.id === "host:1",
+      );
+      const injecting =
+        run === liveRun && !injected && publication?.kind === "world.changed";
+      if (injecting) {
+        const current = HF.current(liveRun);
+        const at = HF.nextIngressAt(liveRun);
+        if (
+          publication.at !== at ||
+          batch.until !== at ||
+          publication.payload.expectedRevision !== current.world.revision ||
+          publication.payload.revision !== current.world.revision + 1
+        )
+          throw Error(
+            "Fixture blocker: publication is not at fresh ingress/current revision.",
+          );
+        if (!HF.isAlive(liveRun, "Maryam"))
+          throw Error(
+            "Fixture blocker: Maryam is already dead before publication.",
+          );
+        // World input applies in phase 0; lifecycle applies in phase 1. Its
+        // factual basis therefore uses the revision that THIS publication installs.
+        submitted = {
+          ...batch,
+          inputs: [
+            ...batch.inputs,
+            HF.input(
+              liveRun,
+              deathInputId,
+              "lifecycle.received",
+              {
+                type: "death",
+                person: { kind: "actor", id: "Maryam" },
+                basis: {
+                  evidence: { kind: "evidence", id: deathInputId },
+                  worldRevision: publication.payload.revision,
+                },
+              },
+              at,
+            ),
+          ],
+        };
+        injected = true;
+        ingressAt = at;
+      }
+      // Capture host state before a possible continuation, but judge retention
+      // only after real emission/admission have been established below.
+      const priorLosses =
+        run === liveRun && deathEvents.length > 0
+          ? structuredClone(g.losses)
+          : undefined;
+      const result = nativeStep(run, submitted);
+      if (injecting) {
+        if (!result.ok)
+          throw Error(
+            `Fixture blocker: native publication refused: ${result.error.code} ${result.error.message}`,
+          );
+        deathEvents = structuredClone(
+          result.value.events.filter(isMaryamDeath),
+        );
+        if (deathEvents.length === 0)
+          throw Error(
+            "Fixture blocker: native publication emitted no actual Maryam death event.",
+          );
+      }
+      if (
+        result.ok &&
+        priorLosses !== undefined &&
+        beforeNextSuccessfulStep === undefined
+      )
+        beforeNextSuccessfulStep = priorLosses;
+      return result;
+    });
+  try {
+    step(g, { type: "teach", practice: "look" });
+    // Fixture prerequisites precede every missing-loss assertion. Admission,
+    // errors or absent emission are blockers, never the intended retention RED.
+    expect(
+      injected,
+      "Fixture blocker: no real publication step intercepted",
+    ).toBe(true);
+    expect(
+      deathEvents.length,
+      "Fixture blocker: actual Maryam death emission",
+    ).toBeGreaterThan(0);
+    expect(
+      deathEvents.every(
+        (event) => isMaryamDeath(event) && event.at === ingressAt,
+      ),
+    ).toBe(true);
+    const accepted = readRunHistory(HF.nativeExport(liveRun)).flatMap(
+      (tx) => tx.inputs,
+    );
+    expect(
+      accepted.filter(
+        (entry) =>
+          entry.id === deathInputId && entry.kind === "lifecycle.received",
+      ),
+      "Fixture blocker: native lifecycle admission",
+    ).toHaveLength(1);
+    expect(HF.isAlive(liveRun, "Maryam")).toBe(false);
+    expect(g.run).toBe(liveRun);
+    expect(g.inputs).toEqual([{ type: "teach", practice: "look" }]);
+
+    function retained(losses: readonly RetainedLoss[]) {
+      const maryam = losses.filter((loss) => loss.person === "Maryam");
+      expect(maryam).toHaveLength(1);
+      expect(maryam[0]?.at).toBe(ingressAt);
+      expect(maryam[0]?.firstChapter).toBe(g.chapter + 1);
+      expect(maryam[0]?.evidence).toEqual(expect.arrayContaining(deathEvents));
+    }
+    retained(g.losses); // Must hold by the public model action's return.
+    const saved = exportRun(g);
+    expect(saved.native.current.world.hostState).toEqual(saved.state);
+    const publications = accepted.filter(
+      (entry) => entry.kind === "world.changed",
+    );
+    expect(
+      publications.some((entry) => entry.id === "host:1:reconcile:1"),
+    ).toBe(true);
+    expect(new Set(publications.map((entry) => entry.id)).size).toBe(
+      publications.length,
+    );
+    expect(publications[1]?.at).toBeGreaterThan(publications[0]?.at ?? -1);
+    if (beforeNextSuccessfulStep !== undefined)
+      retained(beforeNextSuccessfulStep);
+    // This externally authored archive is not ordinary model.replay proof.
+    // Eviction/idempotence/native JSON controls live in the contract test.
+  } finally {
+    nativeStepSpy.mockRestore();
+  }
 });

@@ -1,20 +1,8 @@
-import {
-  type Affordance,
-  type Community,
-  clearMethodContext,
-  createCommunity,
-  createPerson,
-  DAYS_PER_YEAR,
-  decide,
-  demonstrateMethod,
-  liveCommunity,
-  type MethodCue,
-  MINUTES_PER_DAY,
-  methodEvidence,
-  type Person,
-  receiveMethodCues,
-  type Traits,
-} from "@adam0white/human-framework";
+import type { Run as HumanRun } from "@adam0white/human-framework";
+import * as HF from "./hf.ts";
+
+type Traits = HF.Traits;
+type MethodCue = HF.Cue;
 export const practices = ["count", "look", "wait", "refuse"] as const;
 export type Practice = (typeof practices)[number];
 export type Input =
@@ -42,7 +30,7 @@ export interface Outcome {
   memory: string;
 }
 export interface Game {
-  edition: 4;
+  edition: 6;
   seed: number;
   slice: boolean;
   chapter: number;
@@ -53,8 +41,15 @@ export interface Game {
   waterReserve: number;
   repairs: number;
   routeKnown: boolean;
-  community: Community;
-  child: Person;
+  run: HumanRun;
+  completedEpisodes: HF.NativeArchive[];
+  readonly child: ReturnType<typeof HF.actor>;
+  losses: {
+    person: string;
+    at: number;
+    firstChapter: number;
+    evidence: HF.NativeEvents[number][];
+  }[];
   inputs: Input[];
   conditions: Conditions;
   outcome: Outcome | null;
@@ -69,7 +64,7 @@ export const teachers: Record<Practice, string> = {
   wait: "Danyal",
   refuse: "Zehra",
 };
-const YEAR = DAYS_PER_YEAR * MINUTES_PER_DAY;
+const YEAR = HF.YEAR;
 const cueFor: Record<Practice, MethodCue> = {
   count: { cue: "supply", value: "scarce" },
   look: { cue: "route", value: "uncertain" },
@@ -121,39 +116,15 @@ const profiles: Record<string, Traits> = {
 };
 export function createGame(seed = 21, slice = false): Game {
   const age = slice ? 6 : 3;
-  const child = createPerson({
-    id: "elif",
-    name: "Elif",
+  const run = HF.opening(
     seed,
-    now: 0,
-    bornAt: -age * YEAR,
-    sex: "female",
-    traits: { ...baselineTraits },
-    norms: [],
-    voices: practices.map((p) => ({ voiceId: teachers[p], trust: 0.85 })),
-    enable: { gists: true, yearbook: true },
-  });
-  const adults = [
-    ["Zehra", 31],
-    ["Yusuf", 34],
-    ["Maryam", 68],
-    ["Danyal", 52],
-    ["Tariq", 16],
-  ] as const;
-  const people = adults.map(([name, years], i) =>
-    createPerson({
-      id: name,
-      name,
-      seed: seed + i + 1,
-      traits: profiles[name],
-      norms: [],
-      now: 0,
-      bornAt: -years * YEAR,
-      sex: name === "Zehra" || name === "Maryam" ? "female" : "male",
-    }),
+    slice,
+    profiles,
+    baselineTraits,
+    practices.map((id) => ({ id, action: id, conditions: [cueFor[id]] })),
   );
   const g: Game = {
-    edition: 4,
+    edition: 6,
     seed,
     slice,
     chapter: 0,
@@ -164,8 +135,12 @@ export function createGame(seed = 21, slice = false): Game {
     waterReserve: 2,
     repairs: 7,
     routeKnown: false,
-    community: createCommunity([child, ...people]),
-    child,
+    run,
+    completedEpisodes: [],
+    get child() {
+      return HF.actor(this.run, "elif");
+    },
+    losses: [],
     inputs: [],
     conditions: {
       variant: 0,
@@ -190,36 +165,90 @@ function refresh(g: Game) {
   g.conditions = {
     variant: (g.seed + g.chapter + Math.max(0, 5 - g.repairs)) % 3,
     available:
-      (g.age === 18 &&
+      HF.isAlive(g.run, "Danyal") &&
+      ((g.age === 18 &&
         (g.food < 5 ||
           (g.seed + g.chapter + Math.max(0, 5 - g.repairs)) % 3 === 1) &&
         g.repairs >= 3 &&
         (g.seed + g.chapter) % 3 !== 0) ||
-      (g.seed + g.chapter + Math.max(0, 4 - g.repairs)) % 3 !== 0,
+        (g.seed + g.chapter + Math.max(0, 4 - g.repairs)) % 3 !== 0),
     flood: (g.seed + g.chapter) % 2 === 1,
     seep: g.repairs >= 3 && (g.seed + g.chapter) % 3 !== 0,
     carriersFed: g.food >= 5,
     pressure: true,
   };
 }
+export function teacherAvailable(g: Game, practice: Practice): boolean {
+  return HF.isAlive(g.run, teachers[practice]);
+}
 function teach(g: Game, practice: Practice, id: string) {
+  if (!teacherAvailable(g, practice))
+    throw Error(
+      `${teachers[practice]} has died. Choose a living companion. Her earlier lessons remain.`,
+    );
+  if (!g.child.body.alive)
+    throw Error("Elif has died. Her yearbook keeps what happened.");
   const cues = [cueFor[practice]];
-  if (!receiveMethodCues(g.child, { contextId: "work", cues }))
-    throw Error("Elif cannot attend this lesson.");
-  if (
-    !demonstrateMethod(g.child, {
-      id: practice,
-      demonstrationId: id,
-      contextId: "work",
-      conditions: cues,
-      action: practice,
-      sourceId: teachers[practice],
-      attention: 1,
-      outcome: "success",
-    })
-  )
-    throw Error("This lesson could not be received.");
-  clearMethodContext(g.child);
+  const at = HF.nextIngressAt(g.run);
+  HF.serve(
+    g.run,
+    at,
+    [
+      HF.input(
+        g.run,
+        `${id}:0-cues`,
+        "method.cues",
+        {
+          person: "elif",
+          evidenceId: `${id}:cues`,
+          contextId: "work",
+          cues,
+        },
+        at,
+      ),
+      HF.input(
+        g.run,
+        `${id}:1-demonstration`,
+        "method.demonstrated",
+        {
+          person: "elif",
+          evidenceId: `${id}:evidence`,
+          demonstrationId: id,
+          methodId: practice,
+          contextId: "work",
+          conditions: cues,
+          action: practice,
+          teacher: teachers[practice],
+          receivedAttention: 1,
+          outcome: "success",
+        },
+        at,
+      ),
+      HF.input(
+        g.run,
+        `${id}:2-contact`,
+        "social.received",
+        {
+          person: "elif",
+          evidenceId: `${id}:contact`,
+          other: teachers[practice],
+          event: { kind: "shared-work", byMe: false, magnitude: 0.5 },
+        },
+        at,
+      ),
+      HF.input(
+        g.run,
+        `${id}:3-left`,
+        "method.context-left",
+        {
+          person: "elif",
+          contextId: "work",
+        },
+        at,
+      ),
+    ],
+    (events) => recordLosses(g, events),
+  );
 }
 export const lessonLines: Record<Practice, string[]> = {
   count: [
@@ -295,7 +324,9 @@ export function step(g: Game, input: Input): void {
           "She takes the first steps home alone.",
         ],
         10: [
-          "Elif shows her half-brother Tariq what she noticed.",
+          HF.isAlive(g.run, "Tariq")
+            ? "Elif shows her half-brother Tariq what she noticed."
+            : "Elif checks what she noticed by herself.",
           "She asks who will be on duty tomorrow.",
           "She makes room for another child beside her.",
         ],
@@ -335,7 +366,7 @@ export function step(g: Game, input: Input): void {
     g.preparations === 3
   ) {
     resolve(g);
-    g.phase = "movement";
+    if (g.child.body.alive) g.phase = "movement";
   } else if (input.type === "reveal" && g.phase === "movement") {
     g.phase = "aftermath";
     if (g.outcome) g.history.push({ ...g.outcome });
@@ -344,6 +375,14 @@ export function step(g: Game, input: Input): void {
     else nextChapter(g, input.practice);
   } else throw Error("That choice is not available now.");
   g.inputs.push({ ...input });
+  // Host resources and presentation are separate from actor faculties. The public
+  // world route records their revision for native/host export reconciliation.
+  HF.publish(
+    g.run,
+    () => JSON.parse(JSON.stringify(hostState(g))),
+    `host:${g.inputs.length}`,
+    (events) => recordLosses(g, events),
+  );
 }
 function resolve(g: Game) {
   // Elif receives what a child can see, not which method will work: water is
@@ -367,227 +406,275 @@ function resolve(g: Game) {
       value: g.conditions.available ? "present" : "absent",
     },
   ];
-  receiveMethodCues(g.child, { contextId: "crisis", cues });
-  const held = practices.filter((a) =>
-    g.child.methods?.rules.some((r) => r.action === a),
+  HF.serve(
+    g.run,
+    HF.nextIngressAt(g.run),
+    [
+      HF.input(g.run, `crisis:${g.chapter}:cues`, "method.cues", {
+        person: "elif",
+        evidenceId: `crisis:${g.chapter}:cues`,
+        contextId: "crisis",
+        cues,
+      }),
+    ],
+    (events) => recordLosses(g, events),
   );
-  const offers: Affordance[] = held.map((action) => ({
-    id: action,
-    action,
-    label: action,
-    duration: 1,
-    effort: 0.01,
-    advertises: {},
-    methodContext: "crisis",
-  }));
-  const matching = held.filter(
-    (a) => methodEvidence(g.child, a, "crisis").support > 0,
+  const heldMethods = HF.heldMethods(g.run);
+  const held = practices.filter((a) => heldMethods.some((r) => r.action === a));
+  const candidates = held.length ? held : ["try"];
+  const conditional = HF.conditionalMethodEvidence(
+    g.run,
+    candidates,
+    `crisis:${g.chapter}`,
   );
-  if (!offers.length)
-    offers.push({
-      id: "try",
-      action: "try",
-      label: "Try without a plan.",
-      duration: 1,
-      effort: 0,
-      advertises: {},
-    });
+  const matching = held.filter((a) =>
+    conditional.evidence.some(
+      (entry) => entry.action === a && entry.evidence.support > 0,
+    ),
+  );
   // She uses the way she has watched most, counting the task that stayed with
   // her between chapters. Two ways watched equally often give her nothing to
   // prefer; the margin only absorbs evidence decay, since lessons in one chapter
   // share a minute.
   const ranked = matching
-    .map((a) => ({ a, s: methodEvidence(g.child, a, "crisis").support }))
+    .map((a) => ({
+      a,
+      s:
+        conditional.evidence.find((entry) => entry.action === a)?.evidence
+          .support ?? 0,
+    }))
     .sort((x, y) => y.s - x.s || (x.a < y.a ? -1 : 1));
   const [first, second] = ranked;
+  // All methods inside the existing tie margin are equally familiar here.
+  // Name them in stable order so millisecond ingress does not change the account.
   const torn =
-    first && second && first.s - second.s < 0.01 ? [first.a, second.a] : null;
-  const d = torn ? null : decide(g.child, offers);
-  const action = torn ? "freeze" : (d?.chosenAction ?? "try");
+    first && second && first.s - second.s < 0.01
+      ? ranked
+          .filter((entry) => first.s - entry.s < 0.01)
+          .map((entry) => entry.a)
+          .sort()
+          .slice(0, 2)
+      : null;
+  const result = torn
+    ? null
+    : HF.decide(g.run, candidates, `crisis:${g.chapter}`, (events) =>
+        recordLosses(g, events),
+      );
+  // Alternatives close at acceptance. Method context ends only when the
+  // attempt has actually ended, or this scene exits without an attempt.
+  HF.serve(
+    g.run,
+    HF.nextIngressAt(g.run),
+    [
+      HF.input(g.run, `crisis:${g.chapter}:left`, "method.context-left", {
+        person: "elif",
+        contextId: "crisis",
+      }),
+    ],
+    (events) => recordLosses(g, events),
+  );
+  if (!g.child.body.alive || result?.status === "dead") {
+    g.phase = "ending";
+    g.outcome = null;
+    g.lastLesson = "Elif has died. Her yearbook keeps the days she lived.";
+    return;
+  }
+  const action = torn
+    ? "freeze"
+    : result?.status === "completed"
+      ? result.action
+      : (result?.status ?? "no-choice");
   let success = false;
   let line = "";
   let cost = "The household comes home short tonight.";
   let movement = "Elif stops between the path and the well.";
-  if (g.age === 6 && action === "look") {
-    success = true;
-    line = "I checked the stones above the water. The upper path was dry.";
-    cost = "The longer walk leaves the field work unfinished.";
-    movement =
-      "Elif walks uphill, tests the stones, then carries her jar home.";
-    g.food -= 1;
-  }
-  if (g.age === 6 && action === "count") {
-    success = true;
-    line = "I took the small jars. I could carry them on the safe path.";
-    cost = "The extra trips wear the well rope.";
-    movement = "Elif lines up small jars and carries them home one at a time.";
-    g.repairs -= 1;
-  }
-  if (g.age === 6 && action === "wait") {
-    success = g.conditions.available;
-    line = success
-      ? "I found Danyal on duty. We brought the jars together."
-      : "I waited where Danyal waits. Nobody came before dusk.";
-    cost = success
-      ? "Danyal leaves the well repairs until tomorrow."
-      : "The household comes home short tonight.";
-    movement =
-      "Elif sits beside the well, then returns with " +
-      (success ? "a full jar." : "an almost empty jar.");
-    if (success) g.repairs -= 2;
-  }
-  if (g.age === 6 && action === "refuse") {
-    line = g.conditions.flood
-      ? "I kept clear of the flooded path. Our jar was still empty at dusk."
-      : "I kept our jar at home. It was still empty at dusk.";
-    movement = "Elif holds her arm across the lower path and stays at home.";
-  }
-  if (g.age !== 6) {
-    const variant = g.conditions.variant;
-    const table: Record<
-      number,
-      Partial<Record<string, [boolean, string, string, string]>>
-    > = {
-      3: {
-        count: [
-          true,
-          "I left one cup for each house and kept our evening jar.",
-          "Maryam misses the meal work while the sharing takes time.",
-          "Elif counts the cups, then carries one jar into the house.",
-        ],
-        refuse: [
-          true,
-          "I put my hand on the lid. We needed that jar for supper.",
-          "The neighbour must wait for the morning water.",
-          "Elif stands beside the jar with her arm across its lid.",
-        ],
-        look: [
-          !g.conditions.flood,
-          "I went to see whether the neighbour had another jar.",
-          g.conditions.flood
-            ? "The path was wet. The household comes home short."
-            : "The walk costs an afternoon of field work.",
-          "Elif follows the path to the neighbour, then turns toward home.",
-        ],
-      },
-      10: {
-        count: [
-          variant !== 1,
-          "I counted the households and set out their places.",
-          variant === 1
-            ? "The older children ignore the places. Our household loses its turn."
-            : "The waiting children need food from our stores.",
-          "Elif lines up jars at the well.",
-        ],
-        look: [
-          variant === 1,
-          "I checked the side entrance before joining the queue.",
-          variant === 1
-            ? "The side path works, but its gate needs repair."
-            : "Both entrances join the same crowded queue. We lose our turn.",
-          "Elif walks around the queue and checks the side gate.",
-        ],
-        refuse: [
-          true,
-          "I stayed in our place when the older children pushed past.",
-          "The older children leave angry. Tomorrow the queue will need help.",
-          "Elif holds her arm across the queue.",
-        ],
-        wait: [
-          g.conditions.available,
-          g.conditions.available
-            ? "Danyal saw whose jars were already waiting."
-            : "I waited for Danyal. Our turn passed while he was away.",
-          g.conditions.available
-            ? "Danyal delays his repair work to settle the queue."
-            : "The household comes home short.",
-          "Elif waits beside the well while the queue moves.",
-        ],
-      },
-      14: {
-        count: [
-          true,
-          "I measured a smaller share for every household.",
-          "Our meals will be thin until spring.",
-          "Elif divides the jars into equal groups.",
-        ],
-        look: [
-          g.conditions.seep,
-          "I checked the store beyond the upper path.",
-          g.conditions.seep
-            ? "The stored water supplies everyone. Moving it delays well repairs."
-            : "The upper store is empty. The sharing leaves our household short.",
-          "Elif takes the upper path to the water store.",
-        ],
-        refuse: [
-          !g.conditions.seep,
-          "I held back the last jars until the missing families arrived.",
-          !g.conditions.seep
-            ? "Nobody goes without, but the queue waits into the cold."
-            : "The upper stored water was needed. Some neighbours miss their share.",
-          "Elif guards the remaining jars with an outstretched arm.",
-        ],
-      },
-      18: {
-        count: [
-          !g.conditions.seep ||
-            (g.conditions.carriersFed && g.conditions.variant !== 1),
-          "I counted the waiting houses and divided our stored water between them.",
-          !g.conditions.seep ||
-          (g.conditions.carriersFed && g.conditions.variant !== 1)
-            ? "Everyone has water. Our household gives up its stored water."
-            : g.conditions.carriersFed
-              ? "Our household’s own water store was empty. There was nothing to divide. The last households go without."
-              : "The carriers had missed meals. Dividing the water at the well left too many trips before night. The last households go without.",
-          "Elif counts the jars and carries a share to every house.",
-        ],
-        look: [
-          g.conditions.seep,
-          "I checked the upper spring before carrying the jars.",
-          g.conditions.seep
-            ? "Everyone has water. The path needs days of repair."
-            : "The spring is dry. The last households go without.",
-          "Elif follows the upper path and carries water down to the houses.",
-        ],
-        refuse: [
-          !g.conditions.seep,
-          "I held the queue and stopped people taking a second jar.",
-          g.conditions.seep
-            ? "The well alone cannot fill every jar. The upper spring was needed. The last households go without."
-            : "Everyone has water, but the neighbours wait into the night.",
-          "Elif stands across the queue, then lets each household through.",
-        ],
-        wait: [
-          g.conditions.available,
-          g.conditions.available
-            ? "Danyal and I kept each household in its turn."
-            : "Danyal was away. I kept waiting while the queue emptied the well.",
-          g.conditions.available
-            ? "Everyone has water. Danyal cannot repair the well today."
-            : "The last households go without.",
-          "Elif waits by the well, then walks along the queue.",
-        ],
-      },
-    };
-    const row = table[g.age]?.[action];
-    success = row?.[0] ?? false;
-    line = row?.[1] ?? "";
-    cost =
-      row?.[2] ??
-      (g.age === 18
-        ? "The last households go without water before night."
-        : "The household comes home short.");
-    movement =
-      row?.[3] ??
-      {
-        3: "Elif stands beside the evening jar and looks from one way to the other.",
-        10: "Elif stops between the queue and the side gate.",
-        14: "Elif stands between the jars and does not begin the sharing.",
-      }[g.age] ??
-      "Elif stops between the path and the well.";
-    if (success) {
-      if (action === "count" || action === "refuse") g.food -= 2;
-      else g.repairs -= 2;
+  // Completed methods keep the original physical table. Freeze retains its
+  // authored shortfall branch; interruption/no choice earns no completed work.
+  if (torn || result?.status === "completed") {
+    if (g.age === 6 && action === "look") {
+      success = true;
+      line = "I checked the stones above the water. The upper path was dry.";
+      cost = "The longer walk leaves the field work unfinished.";
+      movement =
+        "Elif walks uphill, tests the stones, then carries her jar home.";
+      g.food -= 1;
+    }
+    if (g.age === 6 && action === "count") {
+      success = true;
+      line = "I took the small jars. I could carry them on the safe path.";
+      cost = "The extra trips wear the well rope.";
+      movement =
+        "Elif lines up small jars and carries them home one at a time.";
+      g.repairs -= 1;
+    }
+    if (g.age === 6 && action === "wait") {
+      success = g.conditions.available;
+      line = success
+        ? "I found Danyal on duty. We brought the jars together."
+        : "I waited where Danyal waits. Nobody came before dusk.";
+      cost = success
+        ? "Danyal leaves the well repairs until tomorrow."
+        : "The household comes home short tonight.";
+      movement =
+        "Elif sits beside the well, then returns with " +
+        (success ? "a full jar." : "an almost empty jar.");
+      if (success) g.repairs -= 2;
+    }
+    if (g.age === 6 && action === "refuse") {
+      line = g.conditions.flood
+        ? "I kept clear of the flooded path. Our jar was still empty at dusk."
+        : "I kept our jar at home. It was still empty at dusk.";
+      movement = "Elif holds her arm across the lower path and stays at home.";
+    }
+    if (g.age !== 6) {
+      const variant = g.conditions.variant;
+      const table: Record<
+        number,
+        Partial<Record<string, [boolean, string, string, string]>>
+      > = {
+        3: {
+          count: [
+            true,
+            "I left one cup for each house and kept our evening jar.",
+            HF.isAlive(g.run, "Maryam")
+              ? "Maryam misses the meal work while the sharing takes time."
+              : "The sharing takes time before Elif brings our jar home.",
+            "Elif counts the cups, then carries one jar into the house.",
+          ],
+          refuse: [
+            true,
+            "I put my hand on the lid. We needed that jar for supper.",
+            "The neighbour must wait for the morning water.",
+            "Elif stands beside the jar with her arm across its lid.",
+          ],
+          look: [
+            !g.conditions.flood,
+            "I went to see whether the neighbour had another jar.",
+            g.conditions.flood
+              ? "The path was wet. The household comes home short."
+              : "The walk costs an afternoon of field work.",
+            "Elif follows the path to the neighbour, then turns toward home.",
+          ],
+        },
+        10: {
+          count: [
+            variant !== 1,
+            "I counted the households and set out their places.",
+            variant === 1
+              ? "The older children ignore the places. Our household loses its turn."
+              : "The waiting children need food from our stores.",
+            "Elif lines up jars at the well.",
+          ],
+          look: [
+            variant === 1,
+            "I checked the side entrance before joining the queue.",
+            variant === 1
+              ? "The side path works, but its gate needs repair."
+              : "Both entrances join the same crowded queue. We lose our turn.",
+            "Elif walks around the queue and checks the side gate.",
+          ],
+          refuse: [
+            true,
+            "I stayed in our place when the older children pushed past.",
+            "The older children leave angry. Tomorrow the queue will need help.",
+            "Elif holds her arm across the queue.",
+          ],
+          wait: [
+            g.conditions.available,
+            g.conditions.available
+              ? "Danyal saw whose jars were already waiting."
+              : "I waited for Danyal. Our turn passed while he was away.",
+            g.conditions.available
+              ? "Danyal delays his repair work to settle the queue."
+              : "The household comes home short.",
+            "Elif waits beside the well while the queue moves.",
+          ],
+        },
+        14: {
+          count: [
+            true,
+            "I measured a smaller share for every household.",
+            "Our meals will be thin until spring.",
+            "Elif divides the jars into equal groups.",
+          ],
+          look: [
+            g.conditions.seep,
+            "I checked the store beyond the upper path.",
+            g.conditions.seep
+              ? "The stored water supplies everyone. Moving it delays well repairs."
+              : "The upper store is empty. The sharing leaves our household short.",
+            "Elif takes the upper path to the water store.",
+          ],
+          refuse: [
+            !g.conditions.seep,
+            "I held back the last jars until the missing families arrived.",
+            !g.conditions.seep
+              ? "Nobody goes without, but the queue waits into the cold."
+              : "The upper stored water was needed. Some neighbours miss their share.",
+            "Elif guards the remaining jars with an outstretched arm.",
+          ],
+        },
+        18: {
+          count: [
+            !g.conditions.seep ||
+              (g.conditions.carriersFed && g.conditions.variant !== 1),
+            "I counted the waiting houses and divided our stored water between them.",
+            !g.conditions.seep ||
+            (g.conditions.carriersFed && g.conditions.variant !== 1)
+              ? "Everyone has water. Our household gives up its stored water."
+              : g.conditions.carriersFed
+                ? "Our household’s own water store was empty. There was nothing to divide. The last households go without."
+                : "The carriers had missed meals. Dividing the water at the well left too many trips before night. The last households go without.",
+            "Elif counts the jars and carries a share to every house.",
+          ],
+          look: [
+            g.conditions.seep,
+            "I checked the upper spring before carrying the jars.",
+            g.conditions.seep
+              ? "Everyone has water. The path needs days of repair."
+              : "The spring is dry. The last households go without.",
+            "Elif follows the upper path and carries water down to the houses.",
+          ],
+          refuse: [
+            !g.conditions.seep,
+            "I held the queue and stopped people taking a second jar.",
+            g.conditions.seep
+              ? "The well alone cannot fill every jar. The upper spring was needed. The last households go without."
+              : "Everyone has water, but the neighbours wait into the night.",
+            "Elif stands across the queue, then lets each household through.",
+          ],
+          wait: [
+            g.conditions.available,
+            g.conditions.available
+              ? "Danyal and I kept each household in its turn."
+              : "Danyal was away. I kept waiting while the queue emptied the well.",
+            g.conditions.available
+              ? "Everyone has water. Danyal cannot repair the well today."
+              : "The last households go without.",
+            "Elif waits by the well, then walks along the queue.",
+          ],
+        },
+      };
+      const row = table[g.age]?.[action];
+      success = row?.[0] ?? false;
+      line = row?.[1] ?? "";
+      cost =
+        row?.[2] ??
+        (g.age === 18
+          ? "The last households go without water before night."
+          : "The household comes home short.");
+      movement =
+        row?.[3] ??
+        {
+          3: "Elif stands beside the evening jar and looks from one way to the other.",
+          10: "Elif stops between the queue and the side gate.",
+          14: "Elif stands between the jars and does not begin the sharing.",
+        }[g.age] ??
+        "Elif stops between the path and the well.";
+      if (success) {
+        if (action === "count" || action === "refuse") g.food -= 2;
+        else g.repairs -= 2;
+      }
     }
   }
   if (g.age < 18 && !success) {
@@ -641,6 +728,16 @@ function resolve(g: Game) {
     };
     movement = `${incomplete[action] ?? "Elif returns to the well"}; the last households still wait.`;
   }
+  if (action === "interrupted" || action === "no-choice") {
+    line =
+      action === "interrupted"
+        ? "I began, but I could not finish. We came home short."
+        : "I did not begin the task. We came home short.";
+    movement =
+      action === "interrupted"
+        ? "Elif stops before the water task is finished."
+        : "Elif stays beside the unfilled jars.";
+  }
   g.food = Math.max(0, Math.min(12, g.food));
   g.repairs = Math.max(0, Math.min(10, g.repairs));
   if (g.food === 0)
@@ -650,34 +747,79 @@ function resolve(g: Game) {
   const remembered = g.rememberedLessons[action as Practice];
   const memory = remembered
     ? `${remembered} ${line} ${success ? "That was enough today." : "That was not enough today."}`
-    : action === "freeze"
+    : action === "freeze" || action === "interrupted" || action === "no-choice"
       ? line
       : "I had watched nobody work through this task. I did not know where to begin. We came home short.";
   g.outcome = { age: g.age, action, success, line, cost, movement, memory };
+}
+/** Calendar targets come from the authored chapter boundary, never the live
+ * ingress timestamp. This is a target for HF's one clock, not an aging loop. */
+export function chapterMonthAt(
+  age: number,
+  next: number,
+  month: number,
+  openingAge = 3,
+): number {
+  const start = Math.ceil(((age - openingAge) * YEAR) / HF.DAY) * HF.DAY;
+  const months = (next - age) * 12;
+  return (
+    Math.ceil((start + ((next - age) * YEAR * month) / months) / HF.DAY) *
+    HF.DAY
+  );
 }
 function nextChapter(g: Game, practice: Practice) {
   const ages = [3, 6, 10, 14, 18];
   const next = ages[g.chapter + 1];
   if (next === undefined) throw Error("No later chapter.");
   const months = (next - g.age) * 12;
-  const start = g.community.people.reduce((n, p) => Math.max(n, p.now), 0);
-  clearMethodContext(g.child);
-  for (let month = 1; month <= months; month++) {
-    const until =
-      Math.ceil(
-        (start + ((next - g.age) * YEAR * month) / months) / MINUTES_PER_DAY,
-      ) * MINUTES_PER_DAY;
-    liveCommunity(g.community, until, {
-      routineFor: () => ({ activities: [] }),
-      upbringingMinutes: 0,
-    });
-    // One remembered task leaves room for the three lived lessons to matter.
-    if (month === months) {
-      teach(g, practice, `gap-${g.chapter}-${month}`);
-      g.rememberedLessons[practice] = lessonMemories[practice][0] ?? "";
-    }
-    g.months++;
+  // The intervening years are a narrated time skip. Each visible chapter has
+  // its own native run; the export retains every completed episode verbatim.
+  g.completedEpisodes.push(HF.nativeExport(g.run));
+  g.run = HF.opening(
+    g.seed + g.chapter + 1,
+    false,
+    profiles,
+    baselineTraits,
+    practices.map((id) => ({ id, action: id, conditions: [cueFor[id]] })),
+    next,
+  );
+  // A fresh episode does not resurrect a person whose death was recorded.
+  // Reassert that host-observed fact through the public lifecycle route.
+  for (const loss of g.losses) {
+    const at = HF.nextIngressAt(g.run);
+    const id = `chapter:${g.chapter + 1}:prior-death:${loss.person}`;
+    HF.serve(
+      g.run,
+      at,
+      [
+        HF.input(
+          g.run,
+          id,
+          "lifecycle.received",
+          {
+            type: "death",
+            person: { kind: "actor", id: loss.person },
+            basis: {
+              evidence: {
+                kind: "evidence",
+                id: `${id}:${loss.evidence[0]?.id}`,
+              },
+              worldRevision: HF.current(g.run).world.revision,
+            },
+          },
+          at,
+        ),
+      ],
+      () => {},
+    );
   }
+  g.months += months;
+  if (teacherAvailable(g, practice)) {
+    teach(g, practice, `chapter-opening-${g.chapter + 1}`);
+    g.rememberedLessons[practice] =
+      `At the start of this chapter, I watched ${practice === "refuse" ? "my mother" : teachers[practice]} demonstrate ${practice}.`;
+  }
+
   g.food = Math.max(
     0,
     Math.min(
@@ -701,8 +843,38 @@ function nextChapter(g: Game, practice: Practice) {
   g.phase = "prepare";
   g.preparations = 0;
   g.outcome = null;
-  g.lastLesson = `Through the years, Elif kept working beside ${practice === "refuse" ? "you" : teachers[practice]}. One of ${practice === "refuse" ? "your" : `${teachers[practice]}’s`} tasks stays with her. She is ${next} now.`;
+  g.lastLesson = `Years pass between chapters. Elif is ${next} now. ${practice === "refuse" ? "You show" : `${teachers[practice]} shows`} her one task before the next three afternoons.`;
+  if (!teacherAvailable(g, practice))
+    g.lastLesson = `${teachers[practice]} has died. Nobody gives a fresh lesson in that person's name. She is ${next} now.`;
   refresh(g);
+}
+/** Observe actual live step results before any subsequent host work. Retained
+ * evidence is detached from both the native event window and the caller. */
+export function recordLosses(g: Game, events: HF.NativeEvents): void {
+  for (const event of events) {
+    const person =
+      event.data.kind === "body-change" && event.data.change.kind === "died"
+        ? event.person
+        : event.data.kind === "lifecycle" &&
+            event.data.receipt.type === "death" &&
+            event.data.receipt.person.kind === "actor"
+          ? event.data.receipt.person.id
+          : undefined;
+    if (!person) continue;
+    let loss = g.losses.find((entry) => entry.person === person);
+    if (!loss) {
+      loss = {
+        person,
+        at: event.at,
+        firstChapter: g.chapter + 1,
+        evidence: [],
+      };
+      g.losses.push(loss);
+    }
+    loss.at = Math.min(loss.at, event.at);
+    if (!loss.evidence.some((retained) => retained.id === event.id))
+      loss.evidence.push(structuredClone(event));
+  }
 }
 export const chapterGoals: Record<number, string> = {
   3: "Keep the household’s evening jar of water at home.",
@@ -715,6 +887,10 @@ function reserveHistory(g: Game): string {
   return g.history
     .filter((outcome) => !outcome.success)
     .map((outcome) => {
+      if (outcome.action === "interrupted")
+        return `At ${outcome.age}, Elif began the water task but could not finish and came home short.`;
+      if (outcome.action === "no-choice")
+        return `At ${outcome.age}, Elif did not begin the water task and came home short.`;
       const source = teachers[outcome.action as Practice];
       return `At ${outcome.age}, ${source ? `Elif tried ${source === "Zehra" ? "Mother" : source}’s way` : outcome.action === "freeze" ? "Elif was torn between two ways she had watched equally often" : "Elif had no workable plan"} and came home short.`;
     })
@@ -743,9 +919,13 @@ export function conditionsText(g: Game): string {
             : g.conditions.seep
               ? "Water still flows from the upper spring. The well alone cannot fill every household’s jar."
               : "The upper spring is dry. The well can fill smaller shares if nobody takes a second jar.";
-  const danyal = g.conditions.available
-    ? "Danyal will be on duty when she goes alone."
-    : "Danyal will be away when she goes alone.";
+  const danyal = !HF.isAlive(g.run, "Danyal")
+    ? g.rememberedLessons.wait
+      ? "Danyal has died. Her yearbook records the work she watched him do."
+      : "Danyal has died. He cannot be on duty or teach her a new task."
+    : g.conditions.available
+      ? "Danyal will be on duty when she goes alone."
+      : "Danyal will be away when she goes alone.";
   const householdStore =
     g.age === 18 && g.conditions.seep && g.conditions.variant === 1
       ? "The household’s own water store is empty. It is separate from the emergency store."
@@ -754,7 +934,9 @@ export function conditionsText(g: Game): string {
     g.age === 18 &&
     g.conditions.seep &&
     (g.conditions.variant === 1 || !g.conditions.carriersFed)
-      ? "Counting shares at the well alone will not reach the last households; she needs to inspect the spring or work with Danyal."
+      ? HF.isAlive(g.run, "Danyal") && g.conditions.available
+        ? "Counting shares at the well alone will not reach the last households; she needs to inspect the spring or work with Danyal."
+        : "Counting shares at the well alone will not reach the last households; she needs to inspect the spring."
       : "";
   const carriers =
     g.age === 18
@@ -763,6 +945,12 @@ export function conditionsText(g: Game): string {
         : "In earlier years the carriers missed meals, so they cannot make many extra trips."
       : "";
   return [
+    ...g.losses
+      .filter((loss) => loss.person !== "Danyal")
+      .map(
+        (loss) =>
+          `${loss.person === "elif" ? "Elif" : loss.person} has died. Her yearbook keeps the days she lived.`,
+      ),
     physical,
     `The emergency store has ${g.waterReserve} household ${g.waterReserve === 1 ? "share" : "shares"} left.`,
     g.age === 18
@@ -778,17 +966,33 @@ export function conditionsText(g: Game): string {
 }
 export interface Run {
   game: "child";
-  edition: 4;
-  engine: "3.2.0";
+  edition: 6;
+  engine: "4.17.0";
   seed: number;
   slice: boolean;
   inputs: Input[];
-  state: Game;
+  state: HostState;
+  native: HF.NativeArchive;
+  episodes: HF.NativeArchive[];
   finalHash: string;
 }
-export function hash(g: unknown): string {
+export type HostState = Omit<Game, "run" | "child" | "completedEpisodes">;
+export function hostState(g: Game): HostState {
+  const { run: _run, child: _child, completedEpisodes: _episodes, ...host } = g;
+  return structuredClone(host);
+}
+export function hash(value: unknown): string {
+  const g = value as Partial<Game> | null;
+  const data =
+    g && typeof g === "object" && g.run
+      ? {
+          host: hostState(g as Game),
+          native: HF.nativeExport(g.run),
+          episodes: g.completedEpisodes,
+        }
+      : value;
   let h = 2166136261;
-  const s = JSON.stringify(g);
+  const s = JSON.stringify(data);
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 16777619);
@@ -796,29 +1000,72 @@ export function hash(g: unknown): string {
   return (h >>> 0).toString(16).padStart(8, "0");
 }
 export function exportRun(g: Game): Run {
+  const state = hostState(g);
+  const native = HF.nativeExport(g.run);
+  if (
+    g.inputs.length > 0 &&
+    !HF.sameJson(native.current.world.hostState, state)
+  )
+    throw Error(
+      "Child exported host state differs from the native publication.",
+    );
   return {
     game: "child",
-    edition: 4,
-    engine: "3.2.0",
+    edition: 6,
+    engine: "4.17.0",
     seed: g.seed,
     slice: g.slice,
     inputs: structuredClone(g.inputs),
-    state: structuredClone(g),
-    finalHash: hash(g),
+    state,
+    native,
+    episodes: structuredClone(g.completedEpisodes),
+    finalHash: hash({ host: state, native, episodes: g.completedEpisodes }),
   };
 }
-export function replay(run: Run): Game {
+const FRESH =
+  "This save needs its original game version. Start a fresh upbringing.";
+function admitted(run: Run) {
   if (
-    run.game !== "child" ||
-    run.edition !== 4 ||
-    run.engine !== "3.2.0" ||
+    run?.game !== "child" ||
+    run.edition !== 6 ||
+    run.engine !== "4.17.0" ||
     !Number.isSafeInteger(run.seed) ||
-    run.inputs.length > 1000
+    typeof run.slice !== "boolean" ||
+    !Array.isArray(run.inputs) ||
+    run.inputs.length > 1000 ||
+    !run.native ||
+    !Array.isArray(run.episodes) ||
+    run.episodes.length > 4
   )
-    throw Error("This run needs its original game version.");
+    throw Error(FRESH);
+  if (
+    hash({ host: run.state, native: run.native, episodes: run.episodes }) !==
+    run.finalHash
+  )
+    throw Error("This run does not match its saved result.");
+}
+/** Import is exact whole-host replay; retained-person admission is a separate stage. */
+export function replay(run: Run): Game {
+  admitted(run);
+  for (const episode of run.episodes) {
+    const verified = HF.need(HF.nativeReplay(episode));
+    if (!verified.verified)
+      throw Error("HF could not verify an earlier chapter.");
+  }
+  const result = HF.nativeReplay(run.native);
+  if (!result.ok && result.error.code === "unsupported-archive")
+    throw Error(FRESH);
+  const native = HF.need(result);
+  if (!native.verified) throw Error("HF could not verify this run.");
   const g = createGame(run.seed, run.slice);
   for (const input of run.inputs) step(g, input);
-  if (hash(g) !== run.finalHash || hash(run.state) !== run.finalHash)
+  const expected = exportRun(g);
+  if (JSON.stringify(expected) !== JSON.stringify(run))
     throw Error("This run does not match its saved result.");
   return g;
+}
+/** Replay already validates the native archive and reconstructs the complete host.
+ * Keep that exact reconstructed Run rather than executing its native history a third time. */
+export function restore(run: Run): Game {
+  return replay(run);
 }

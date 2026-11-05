@@ -1,3 +1,7 @@
+## Current episode contract — 2026-11-05
+
+The current README and AGENTS define edition 6: five short HF4 chapters, explicit year skips, complete per-episode exports and exact replay. Continuous-life, daily gap care, offscreen natural mortality and original time budgets below are historical proposals and unqualified candidates. They are superseded for this port, not reported as completed. Dated checkpoints are in HANDOFF: 2026-11-12 with an individual reason for each previously overdue Deferred item. Multiplayer and account transfer remain excluded.
+
 # What the Child Saw
 
 You are Zehra. Your daughter Elif learns by watching adults work. Prepare her for five days when she must act alone, at three, six, ten, fourteen and eighteen. Keep the household fed while choosing whose work she sees. At eighteen she must bring water home for every waiting household. Her independence can win, even when she follows another adult.
@@ -57,7 +61,7 @@ The coordinator resolves the v1 roster objection. Drop the witnessed-practice op
 
 - 2026-11-10: Consider F-2866, F-2868, F-2869, F-2870 and F-2873: neighbour context, afternoon variation, more interaction with Elif and a clearer failed attempt. These are fictional LIGHT panel preferences, not proven causes or approved features. Preserve fair failure.
 - 2026-11-10: Consider the nine first-fixed-retest preferences F-2922–F-2930 and Rosa's recovery preference, “Explain why food returned between years.” Preserve fair failure. The [retest record](playtests/2026-10-31-fixed-retest.md) retains the exact asks and their sources. No additional blocking ask was reached in Rosa's recovery.
-- 2026-11-03: The first-fixed-retest player loop and Rosa's instrument recovery are collected with limits; owner acceptance of feel remains pending. F-2921's New game instrument lead is resolved for the new Rosa recovery only; the causes of her two earlier TOOL stops remain unknown. Candidate wording for F-2861, F-2862 and F-2865 and the Feedback handoff received player observations in the retest. Those observations do not establish the causes of earlier blocks. The handoff watches SDK 0.4.15's private veil removal because the SDK exposes no close callback.
+- 2026-11-12: Recheck owner feel on a deployed episode candidate; that candidate did not exist at the old November 3 review. The first-fixed-retest player loop and Rosa's instrument recovery are collected with limits; owner acceptance of feel remains pending. F-2921's New game instrument lead is resolved for the new Rosa recovery only; the causes of her two earlier TOOL stops remain unknown. Candidate wording for F-2861, F-2862 and F-2865 and the Feedback handoff received player observations in the retest. Those observations do not establish the causes of earlier blocks. The handoff watches SDK 0.4.15's private veil removal because the SDK exposes no close callback.
 
 - 2026-11-03: owner taste acceptance remains pending; the first-fixed-retest player loop is closed with the recorded limits.
 - 2026-11-03: cross-game continuation admission, pending a separate receiving-stage design; this run uses its own authored cast branch.
@@ -200,3 +204,8 @@ The rate divides by `6 * (1096 / 365.25)` person-years; the total step and resto
 This shared Apple M4 used Node 26.12.0 and pnpm 12.14.0. One-minute load was 2.68 at the start, 3.21 after stepping and 3.53 after replay. These are one observed run's timings, not an isolated speed ratio against the earlier candidate. Input construction, export and rendering are outside step time. Restore runs in the same process from a parsed archive.
 
 The registry tar is 475,382 bytes, SHA256 `97485db053f24639003d4bc5e2e0958d7550a809a8affeeae924c8c765aece80`. Its integrity matches npm metadata. Provenance binds it to source `97127f60e48465fc73ffc6b469844255516e629e`, tag `v4.9.0` and publish workflow run 40830473010. Engine build: `2be1b4e3f21f68556da0b114840d876a31e2ba264e1980980b046708d67d49d1`. Raw progress, archive and artifact verification remain under `~/code/.lab-scratch/codex/g7-perf-proof/published-490/`. The app's existing replay-hash tests remain unchanged.
+
+
+## HF 4.16.0 composition candidate (2026-11-01)
+
+The owner wants every game on 4.x. The recorded 2026-11-24 cost recheck does not freeze source work. The [candidate status](hf4151-port-status.md) records the actual host port, source authority, public ingress ordering correction, prepared finite checks and remaining integration. Earlier failed cost results and proxy omissions above remain historical evidence. Both 2,000 ms budgets remain in force pending root's documented ordinary-scope decision. No current native export, runtime check, budget pass or natural-death observation has been produced under the active Well panel hold.

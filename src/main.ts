@@ -12,6 +12,7 @@ import {
   practices,
   replay,
   step,
+  teacherAvailable,
   teachers,
 } from "./model";
 import { createRenderer } from "./render";
@@ -20,13 +21,57 @@ const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw Error("Page is missing.");
 let game = createGame(21);
 let saveWarning = "";
-try {
-  const saved = localStorage.getItem("child-run");
-  if (saved) game = replay(JSON.parse(saved));
-} catch {
-  saveWarning = "The old page could not be read. A new upbringing has begun.";
+let autosaveBlocked = false;
+function preserveRefusedSave(raw: string): boolean {
+  try {
+    const keyCount = localStorage.length;
+    for (let i = 0; i < keyCount; i++) {
+      const key = localStorage.key(i);
+      if (
+        key !== null &&
+        /^child-run-refused:\d+$/.test(key) &&
+        localStorage.getItem(key) === raw
+      )
+        return true;
+    }
+    // With keyCount existing keys, at least one of these slots is unused.
+    for (let i = 0; i <= keyCount; i++) {
+      const key = `child-run-refused:${i}`;
+      const existing = localStorage.getItem(key);
+      if (existing === raw) return true;
+      if (existing === null) {
+        localStorage.setItem(key, raw);
+        return localStorage.getItem(key) === raw;
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }
-const lab = initLab(() => exportRun(game));
+let saved: string | null = null;
+try {
+  saved = localStorage.getItem("child-run");
+} catch {
+  autosaveBlocked = true;
+}
+if (saved !== null) {
+  try {
+    game = replay(JSON.parse(saved));
+  } catch {
+    saveWarning =
+      "This save needs its original game version. A fresh upbringing has begun.";
+    autosaveBlocked = !preserveRefusedSave(saved);
+  }
+}
+if (autosaveBlocked) {
+  saveWarning +=
+    " SAVE BLOCKED: This device's original save could not be protected. Saving is disabled. You can keep playing and export this upbringing.";
+}
+const lab = initLab(
+  () => game.run,
+  () => exportRun(game),
+);
 let timer: ReturnType<typeof setTimeout> | undefined;
 let feedbackOpen = false;
 const header = document.createElement("header");
@@ -60,15 +105,27 @@ function button(title: string, detail: string, fn: () => void) {
   choices.append(b);
 }
 function save() {
-  if (game.slice) return;
+  if (autosaveBlocked || game.slice) return;
+  let run: ReturnType<typeof exportRun>;
   try {
-    const run = exportRun(game);
-    localStorage.setItem("child-run", JSON.stringify(run));
-    lab.captureSave(run);
+    run = exportRun(game);
+    const raw = JSON.stringify(run);
+    localStorage.setItem("child-run", raw);
+    if (localStorage.getItem("child-run") !== raw)
+      throw Error("The saved upbringing could not be verified.");
     saveWarning = "";
-  } catch {
+  } catch (error) {
+    console.error("Child local save failed", error);
     saveWarning =
-      "This device could not save the page. Keep the game open to finish.";
+      "This device could not save the page. Keep the game open and export this upbringing before leaving.";
+    return;
+  }
+  try {
+    lab.captureSave(run);
+  } catch (error) {
+    console.error("Child play recording failed after local save", error);
+    saveWarning =
+      "This page is saved on this device, but its play recording could not be queued.";
   }
 }
 function scheduleReveal() {
@@ -122,7 +179,7 @@ function draw() {
     progress.className = "preparation-progress";
     progress.textContent =
       game.preparations === 0
-        ? "Choose work for three afternoons. Then she goes alone, using the way she watched most often. A task kept from earlier years counts too. For example, one remembered counting task and two new checking tasks give her more practice checking. If two ways are tied, she cannot choose between them."
+        ? "Choose work for three afternoons. Then she goes alone, using the way she watched most often. After each time skip, her chosen companion shows one task again. For example, that opening counting demonstration and two new checking tasks give her more practice checking. If two ways are tied, she cannot choose between them."
         : preparationProgress(game.preparations);
     story.append(progress);
     if (game.preparations === 0) {
@@ -165,9 +222,11 @@ function draw() {
     else {
       const arrange = document.createElement("p");
       arrange.textContent =
-        "Who will she keep working beside through the coming years?";
+        "After the years pass, who will show her one task at the next chapter’s opening?";
       story.append(arrange);
-      for (const practice of practices)
+      for (const practice of practices.filter((practice) =>
+        teacherAvailable(game, practice),
+      ))
         button(
           practice === "refuse"
             ? "Keep working with you"
@@ -192,6 +251,10 @@ function draw() {
       consequence.className = "ending-consequence";
       consequence.textContent = endingReason(game);
       story.append(consequence);
+    }
+    if (!game.child.body.alive) {
+      h.textContent = "Elif has died.";
+      p.textContent = game.lastLesson;
     }
     const journal = document.createElement("div");
     journal.className = "journal";
