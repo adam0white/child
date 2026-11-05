@@ -50,10 +50,13 @@ function preserveRefusedSave(raw: string): boolean {
   return false;
 }
 let saved: string | null = null;
+let guide = false;
 try {
   saved = localStorage.getItem("child-run");
+  guide = saved === null && localStorage.getItem("child-guide-done") !== "1";
 } catch {
   autosaveBlocked = true;
+  guide = true;
 }
 if (saved !== null) {
   try {
@@ -101,8 +104,22 @@ function button(title: string, detail: string, fn: () => void) {
   const span = document.createElement("span");
   span.textContent = detail;
   b.append(strong, span);
-  b.onclick = fn;
+  b.onclick = () => {
+    if (guide && game.phase === "aftermath") stopGuide();
+    fn();
+  };
+  if (guide && !choices.querySelector("[data-guide-target]"))
+    b.dataset.guideTarget = "";
   choices.append(b);
+}
+function stopGuide() {
+  guide = false;
+  try {
+    localStorage.setItem("child-guide-done", "1");
+  } catch {
+    // The guide also works without storage.
+  }
+  draw();
 }
 function save() {
   if (autosaveBlocked || game.slice) return;
@@ -151,6 +168,7 @@ const costs: Record<Practice, string> = {
   refuse: "You keep a jar for home. Staying home uses food stores.",
 };
 function draw() {
+  app?.classList.toggle("guiding", guide);
   top.textContent = `WHAT THE CHILD SAW · ELIF AT ${game.age}`;
   renderer.update({
     age: game.age,
@@ -167,6 +185,28 @@ function draw() {
   const h = document.createElement("h1"),
     p = document.createElement("p");
   story.append(h, p);
+  if (guide) {
+    const cue = document.createElement("p");
+    cue.dataset.guideCue = "";
+    cue.className = "guide-cue";
+    cue.textContent =
+      game.phase === "prepare"
+        ? game.preparations < 3
+          ? `Help Elif keep water at home. Choose who she watches (${3 - game.preparations} left). Her lesson can leave water short.`
+          : "Now let Elif go. Watch what her lessons lead her to do."
+        : game.phase === "movement"
+          ? "Watch what Elif does."
+          : "Her choice has a cost. Continue with a companion.";
+    if (game.phase === "aftermath" || game.phase === "ending")
+      cue.dataset.guideResult = "";
+    const skip = document.createElement("button");
+    skip.type = "button";
+    skip.dataset.guideSkip = "";
+    skip.className = "guide-skip";
+    skip.textContent = "Skip guide";
+    skip.onclick = stopGuide;
+    choices.append(cue, skip);
+  }
   if (game.phase === "prepare") {
     h.textContent =
       game.preparations === 0
@@ -287,6 +327,12 @@ function menuButton(label: string, fn: () => void) {
 }
 menuButton("Resume", () => {
   menu.close();
+  if (game.phase === "movement") scheduleReveal();
+});
+menuButton("Replay guide", () => {
+  guide = true;
+  menu.close();
+  draw();
   if (game.phase === "movement") scheduleReveal();
 });
 const feedbackButton = menuButton("Feedback", () => {
