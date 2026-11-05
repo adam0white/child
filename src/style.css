@@ -377,3 +377,47 @@ dialog:not([open]) {
   cursor: pointer;
   padding: 12px 0;
 }
+
+.guide-cue {
+  margin: 0;
+  padding: 10px 12px;
+  background: #dbe9df;
+  border-left: 4px solid var(--teal);
+  font-size: 15px;
+}
+.choices .guide-skip {
+  padding: 5px 2px;
+  min-height: 36px;
+  text-decoration: underline;
+  color: var(--teal);
+}
+.choices .guide-skip::after {
+  content: none;
+}
+.choices [data-guide-target] {
+  border-left: 4px solid var(--teal);
+  padding-left: 8px;
+  background: #e3ede3;
+}
+@media (min-width: 0px) {
+  .guiding .scene {
+    height: 75px;
+    min-height: 75px;
+    margin: 4px 0;
+  }
+  .guiding .story h1 {
+    font-size: 23px;
+    margin-bottom: 3px;
+  }
+  .guiding .story p {
+    font-size: 13px;
+    line-height: 1.2;
+    margin-bottom: 3px;
+  }
+  .guiding .preparation-progress {
+    display: none;
+  }
+  .guiding .choices {
+    margin-top: 5px;
+  }
+}
