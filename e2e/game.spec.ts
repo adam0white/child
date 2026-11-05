@@ -1,5 +1,13 @@
+import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
+
+// Exact historical edition-3 export reproduced from source5368920/HF3.2.0.
+// This fixture is not a real-player save and never continues under the current game.
+const historicalSave = readFileSync(
+  new URL("./fixtures/child-edition3-hf3.2.0.json.txt", import.meta.url),
+  "utf8",
+);
 
 async function beginAtSix(page: Page) {
   await page.goto("/");
@@ -322,6 +330,156 @@ test("age-six day preserves the full upbringing and New game returns to age thre
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "New game", exact: true }).click();
   await expect(page.locator(".topline")).toContainText("ELIF AT 3");
+});
+
+test("refused save keeps old and malformed bytes in durable non-overwriting backups", async ({
+  page,
+}) => {
+  const old = historicalSave;
+  const malformed = '{"edition": broken  \n';
+  const earlier = "a different earlier refused save";
+  await page.addInitScript(
+    ({ old, earlier }) => {
+      if (!sessionStorage.getItem("s3-seeded")) {
+        localStorage.setItem("child-run", old);
+        localStorage.setItem("child-run-refused:0", earlier);
+        sessionStorage.setItem("s3-seeded", "yes");
+      }
+    },
+    { old, earlier },
+  );
+  await page.goto("/");
+  for (const raw of [old, malformed]) {
+    await expect(page.locator(".status")).toContainText("A fresh upbringing");
+    await page.getByRole("button", { name: /Go with Maryam/ }).click();
+    await page.reload();
+    const stored = await page.evaluate(() => ({
+      earlier: localStorage.getItem("child-run-refused:0"),
+      backups: Object.keys(localStorage)
+        .filter((key) => /^child-run-refused:\d+$/.test(key))
+        .map((key) => localStorage.getItem(key)),
+    }));
+    expect(stored.earlier).toBe(earlier);
+    expect(stored.backups).toContain(raw);
+    if (raw === old) {
+      await page.evaluate(
+        (value) => localStorage.setItem("child-run", value),
+        malformed,
+      );
+      await page.reload();
+    }
+  }
+  const backups = await page.evaluate(() =>
+    Object.keys(localStorage)
+      .filter((key) => /^child-run-refused:\d+$/.test(key))
+      .map((key) => localStorage.getItem(key)),
+  );
+  expect(backups).toContain(old);
+  expect(backups).toContain(malformed);
+});
+
+for (const failure of ["write", "read"] as const) {
+  test(`refused save blocks replacement after simulated backup ${failure} failure`, async ({
+    page,
+  }) => {
+    const raw = historicalSave;
+    await page.addInitScript(
+      ({ raw, failure }) => {
+        if (!sessionStorage.getItem("s3-seeded")) {
+          localStorage.setItem("child-run", raw);
+          localStorage.setItem("child-run-refused:0", "different prior backup");
+          sessionStorage.setItem("s3-seeded", "yes");
+        }
+        const getItem = Storage.prototype.getItem;
+        const setItem = Storage.prototype.setItem;
+        Storage.prototype.getItem = function (key) {
+          if (
+            this === localStorage &&
+            failure === "read" &&
+            key.startsWith("child-run-refused:")
+          )
+            throw new Error("simulated backup read failure");
+          return getItem.call(this, key);
+        };
+        Storage.prototype.setItem = function (key, value) {
+          if (
+            this === localStorage &&
+            failure === "write" &&
+            key.startsWith("child-run-refused:")
+          )
+            throw new Error("simulated backup write failure");
+          return setItem.call(this, key, value);
+        };
+      },
+      { raw, failure },
+    );
+    await page.goto("/");
+    const protectedSave = async () => {
+      expect(await page.evaluate(() => localStorage.getItem("child-run"))).toBe(
+        raw,
+      );
+      await expect(page.locator(".status")).toContainText(
+        /sav(?:e|ing).*(?:disabled|blocked)|(?:disabled|blocked).*sav(?:e|ing)/i,
+      );
+    };
+    await expect(page.locator(".status")).toContainText("A fresh upbringing");
+    await protectedSave();
+    for (let i = 0; i < 2; i++) {
+      await page.getByRole("button", { name: /Go with Maryam/ }).click();
+      await protectedSave();
+    }
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export playtest" }).click();
+    const path = await (await download).path();
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.getByRole("button", { name: "New game", exact: true }).click();
+    await protectedSave();
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByLabel("Replay playtest").setInputFiles(path);
+    await expect(page.locator("dialog.menu")).not.toBeVisible();
+    await protectedSave();
+    await page.reload();
+    await protectedSave();
+    await page.getByRole("button", { name: /Go with Maryam/ }).click();
+    await protectedSave();
+  });
+}
+
+test("refused save blocks replacement when the initial saved bytes cannot be read", async ({
+  page,
+}) => {
+  const raw = historicalSave;
+  await page.addInitScript((raw) => {
+    localStorage.setItem("child-run", raw);
+    const getItem = Storage.prototype.getItem;
+    let unread = true;
+    Storage.prototype.getItem = function (key) {
+      if (this === localStorage && key === "child-run" && unread) {
+        unread = false;
+        throw new Error("simulated initial save read failure");
+      }
+      return getItem.call(this, key);
+    };
+  }, raw);
+  await page.goto("/");
+  const protectedSave = async () => {
+    expect(await page.evaluate(() => localStorage.getItem("child-run"))).toBe(
+      raw,
+    );
+    await expect(page.locator(".status")).toContainText(
+      /sav(?:e|ing).*(?:disabled|blocked)|(?:disabled|blocked).*sav(?:e|ing)/i,
+    );
+  };
+  await protectedSave();
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole("button", { name: /Go with Maryam/ }).click();
+    await protectedSave();
+  }
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "New game", exact: true }).click();
+  await protectedSave();
 });
 
 test("Feedback controls work while movement stays paused until Resume", async ({

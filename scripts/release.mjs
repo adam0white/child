@@ -8,6 +8,6 @@ writeFileSync(
     game: "child",
     commit: git("rev-parse", "HEAD"),
     dirty: git("status", "--porcelain").length > 0,
-    humanFramework: "3.2.0",
+    humanFramework: "4.17.0",
   })}\n`,
 );

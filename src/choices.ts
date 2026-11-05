@@ -3,8 +3,9 @@ import {
   type Input,
   type Practice,
   practices,
+  teacherAvailable,
   teachers,
-} from "./model";
+} from "./model.ts";
 
 const purposes: Record<number, Record<Practice, string>> = {
   3: {
@@ -64,14 +65,16 @@ export function preparationChoices(game: Game): {
   detail: string;
   input: Input;
 }[] {
-  const choices = practices.map((practice) => ({
-    title:
-      practice === "refuse"
-        ? "Stay home with you"
-        : `Go with ${teachers[practice]}`,
-    detail: `${game.rememberedLessons[practice] ? "Practise" : "Try"} ${methods[practice]}${game.rememberedLessons[practice] ? " again" : ""} to ${purposes[game.age]?.[practice]}. ${costs[practice]}`,
-    input: { type: "teach", practice } as Input,
-  }));
+  const choices = practices
+    .filter((practice) => teacherAvailable(game, practice))
+    .map((practice) => ({
+      title:
+        practice === "refuse"
+          ? "Stay home with you"
+          : `Go with ${teachers[practice]}`,
+      detail: `${game.rememberedLessons[practice] ? "Practise" : "Try"} ${methods[practice]}${game.rememberedLessons[practice] ? " again" : ""} to ${purposes[game.age]?.[practice]}. ${costs[practice]}`,
+      input: { type: "teach", practice } as Input,
+    }));
   const lastLesson = game.inputs.findLast(
     (input) => input.type === "teach" || input.type === "arrange",
   );

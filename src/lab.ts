@@ -1,3 +1,4 @@
+import type { Run } from "@adam0white/human-framework";
 import { claimLabNotice, createLab } from "@adam0white/lab-client";
 
 export interface GameLab {
@@ -10,10 +11,21 @@ export interface GameLab {
 }
 
 /** Keep transport, privacy preferences and stored-note receipts in the lab SDK. */
-export function initLab(getRun: () => unknown): GameLab {
+export function initLab(getRun: () => Run, getExport: () => unknown): GameLab {
   // Localhost remains off. Do not enable sendFromLocalhost for agent playtests.
   const lab = createLab({ game: "child" });
-  const stopTracking = lab.trackRun(getRun);
+  const generations = new WeakMap<Run, number>();
+  let nextGeneration = 0;
+  const runKey = () => {
+    const run = getRun();
+    let generation = generations.get(run);
+    if (generation === undefined) {
+      generation = ++nextGeneration;
+      generations.set(run, generation);
+    }
+    return generation;
+  };
+  const stopTracking = lab.trackRun(getExport, { runKey });
   let destroyed = false;
   let notice: HTMLElement | null = null;
   let feedbackObserver: MutationObserver | null = null;
@@ -62,7 +74,7 @@ export function initLab(getRun: () => unknown): GameLab {
     feedback(onClose) {
       if (destroyed) return false;
       if (feedbackObserver) return true;
-      // SDK 0.4.15 has no close callback. Its private veil is appended to body
+      // SDK 0.5.8 has no close callback. Its private veil is appended to body
       // and removed on dismissal; keep this dependency in the adapter.
       const connectedVeils = () =>
         [...document.querySelectorAll<HTMLElement>(".hflab-veil")].filter(
@@ -70,7 +82,7 @@ export function initLab(getRun: () => unknown): GameLab {
         );
       if (connectedVeils().length === 0) {
         try {
-          lab.openSendDialog({ getRun, feedbackChoices: true });
+          lab.openSendDialog({ getRun: getExport, feedbackChoices: true });
         } catch {
           // The SDK may have appended its veil before throwing.
         }
@@ -107,6 +119,7 @@ export function initLab(getRun: () => unknown): GameLab {
       feedbackObserver?.disconnect();
       feedbackObserver = null;
       stopTracking();
+      lab.dispose();
       notice?.remove();
     },
   };

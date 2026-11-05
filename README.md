@@ -1,4 +1,16 @@
+# Current episode edition — 2026-11-05
+
+The current candidate uses published HF 4.17.0 and game edition 6. It retains five playable chapters at ages 3, 6, 10, 14 and 18. The intervening 180 fictional months are explicit time skips. Each chapter starts a fresh native Run with authored ages and one new demonstration by the chosen living companion. Food, repairs, water, route knowledge, yearbook and recorded deaths carry as host facts. Native memory, body continuity and offscreen daily care do not carry through the skipped years. Recorded deaths are reasserted through public lifecycle inputs; a dead teacher cannot return to teach. On-screen decisions, work and failures still use HF.
+
+Download includes every visited episode's complete native archive plus the seed, ordered player inputs and complete host state. Import verifies all native archives, reconstructs all chapters and requires exact complete export equality. Old saves need a fresh upbringing. The original continuous fifteen-year simulation and its 36-month/180-month/2-second budgets remain unqualified historical work. This episode edition does not pass or claim those budgets. Exact source CI, hosted review and deployment remain pending.
+
+Stack: Node 26.12.0, pnpm 12.16.1, TypeScript 7.0.2, Vitest 5.1.0, Biome 2.6.5, Wrangler 4.157.0. Use frozen installs and the 1440-minute release-age policy. Current lab client 0.5.15 and kit 0.5.32 are immutable artifacts; their current HF runtime resolves to 4.17.0 while the historical alias remains separate.
+
+## Historical design and release evidence
+
 # What the Child Saw
+
+The HF 4.16.3 candidate is uncommitted and unqualified. The focused contract suite passed all 16 cases; the required full lane was interrupted. The original 36-month, 180-month, 2,000 ms and public-save gates remain open. See [status and pending checks](docs/hf4151-port-status.md). Descriptions of the released HF3 game below are historical release evidence.
 
 You are Zehra. Elif learns through the work she sees. Choose whose work she watches, pay its cost, and prepare her for five days when she must act alone. At eighteen, get water to every waiting household.
 
@@ -48,7 +60,7 @@ Node26.12.0 and pnpm12.14.0. `pnpm install --frozen-lockfile`, then `pnpm dev`.
 
 `pnpm check:lane` runs lint, strict typecheck, headless tests and the production build. `pnpm e2e` checks Chromium and WebKit at360×690 and1280×800. Install their runtimes with `pnpm exec playwright install chromium webkit` when needed.
 
-Every actor decision uses the published HF3.2.0 package. Game code owns settlement resources and consequences. No framework source is vendored. The lab-client tarball is the immutable SDK0.4.11 GitHub release artifact; it retains its own exact HF3.0.0 dependency, separate from the game's3.2.0 import.
+The released HF3 game used the published HF3.2.0 package. Game code owns settlement resources and consequences. No framework source is vendored. The HF4 candidate pins lab-client 0.5.8 and lab-kit 0.5.25 release assets. The game and current lab-client resolve to the same HF 4.16.3 installation.
 
 Menu offers replay export/import and Other ways to begin → Begin at age six. The separate age-six day leaves the saved upbringing untouched. New game starts a full upbringing. Debug, initially collapsed beside Lab privacy, offers the Canvas2D diagnostic renderer. Ordinary play saves on this device. Feedback and Recording are in Menu.
 
